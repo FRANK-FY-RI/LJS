@@ -12,11 +12,23 @@
 using namespace std;
 
 //fucntion to start a new process
-int new_process(const char* path, char *args[]) {
+int new_process(const char* path, char *args[], const int input_fd, const int output_fd) {
     int status;
     pid_t pid = fork();
     int ret_status;
     if(pid == 0) {
+        //redirect input
+        if(input_fd != -1) {
+            dup2(input_fd, 0);
+            close(input_fd);
+        }
+
+        //redirect output
+        if(output_fd != -1) {
+            dup2(output_fd, 1);
+            close(output_fd);
+        }
+
         execv(path, args);
         exit(CHILD_PROCESS_ERROR);
     }
