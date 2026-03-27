@@ -70,6 +70,17 @@ pair<int, string> compile(const char *code) {
 }
 
 
+//delete a file
+int rm(const string& path) {
+    char *rm_args[] = {
+        (char*)"rm",
+        const_cast<char*>(path.c_str()),
+        NULL
+    };
+    return new_process("/usr/bin/rm", rm_args, -1, -1);
+}
+
+
 
 int main(int argc, char* argv[]) {
     //Help
@@ -179,6 +190,10 @@ int main(int argc, char* argv[]) {
                 NULL
             };
             status = new_process("/usr/bin/diff", diff_args, -1, 2); 
+            string output_file_path = "./" + output_file; 
+            if(rm(output_file_path) == CHILD_PROCESS_ERROR) {
+                cerr<<"⚠️ Unable to run rm command\n";
+            }
             if(status == CHILD_PROCESS_ERROR) {
                 cerr<<"⚠️ Unable to run diff command\n";
                 return CHILD_PROCESS_ERROR;
