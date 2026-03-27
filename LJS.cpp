@@ -2,6 +2,7 @@
 #include <string>
 #include <cstdlib>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 
 #define COMPILE_ERROR 1
@@ -55,7 +56,7 @@ pair<int, string> compile(const char *code) {
         const_cast<char*>(binary.c_str()),
         NULL
     };
-    int status = new_process("/usr/bin/g++", compile_args); 
+    int status = new_process("/usr/bin/g++", compile_args, -1, -1); 
     if(status == COMPILE_ERROR) {
         cerr<<"❌ Compilation error\n";
         return {COMPILE_ERROR, ""};
@@ -103,7 +104,7 @@ int main(int argc, char* argv[]) {
             const_cast<char*>(exec_path.c_str()), 
             NULL
         };
-        status = new_process(exec_path.c_str(), run_args); 
+        status = new_process(exec_path.c_str(), run_args, -1, -1); 
         if(status == RUNTIME_ERROR) {
             cerr<<"⚠️ Runtime error\n";
             return RUNTIME_ERROR;
@@ -147,12 +148,16 @@ int main(int argc, char* argv[]) {
             }
             
             //run
+            const int input_fd = open(input_file.c_str(), O_RDONLY);
+            const int output_fd = open(output_file.c_str(), O_WRONLY|O_CREAT|O_TRUNC, 0644);
             string exec_path = "./" + binary;
             char *run_args[] = {
                 const_cast<char*>(binary.c_str()),
-
-            }
-            int run_status = new_process(exec_path.c_str(), );
+                NULL
+            };
+            int status = new_process(exec_path.c_str(), run_args, input_fd, output_fd);
+            close(input_fd);
+            close(output_fd);
             if(status == COMPILE_ERROR) {
                 return COMPILE_ERROR;
             }
@@ -160,6 +165,7 @@ int main(int argc, char* argv[]) {
                 return CHILD_PROCESS_ERROR;
             }
             else if(status == RUNTIME_ERROR) {
+                cerr<<"❌ Runtime Error";
                 i++;
                 continue;
             }
@@ -171,11 +177,18 @@ int main(int argc, char* argv[]) {
                 const_cast<char*>(output_file.c_str()),
                 NULL
             };
-            status = new_process("/usr/bin/diff", diff_args); 
+            status = new_process("/usr/bin/diff", diff_args, -1, 2); 
             if(status == CHILD_PROCESS_ERROR) {
                 cerr<<"⚠️ Unable to run diff command\n";
+                return CHILD_PROCESS_ERROR;
             }
-            else if(status == 0) {ac++;}
+            else if(status == 0) {
+                cerr<<"✔️ Accepted\n";
+                ac++;
+            }
+            else if(status == 1) {
+                cerr<<"❌ Wrong Ans\n";
+            }
             i++;
         } 
     }
