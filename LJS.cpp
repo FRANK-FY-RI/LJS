@@ -1,9 +1,11 @@
 #include <iostream>
 #include <string>
+#include <utility>
 #include <cstdlib>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
 
 #define COMPILE_ERROR 1
 #define RUNTIME_ERROR 2
@@ -30,6 +32,11 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
             close(output_fd);
         }
 
+        struct rlimit rl;
+        rl.rlim_cur = 2;
+        rl.rlim_max = 3;
+        setrlimit(RLIMIT_CPU, &rl);
+
         execv(path, args);
         exit(CHILD_PROCESS_ERROR);
     }
@@ -38,7 +45,10 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
         if(WIFEXITED(status)) {
             ret_status = WEXITSTATUS(status);
         }
-        else if(WIFSIGNALED(status)) ret_status = RUNTIME_ERROR;
+        else if(WIFSIGNALED(status)) {
+            if(WTERMSIG(status) == SIGXCPU || WTERMSIG(status) == SIGALRM) ret_status = TLE;
+            else ret_status = RUNTIME_ERROR;
+        }
         else ret_status = CHILD_PROCESS_ERROR;
     }
     return ret_status;
@@ -71,13 +81,8 @@ pair<int, string> compile(const char *code) {
 
 
 //delete a file
-int rm(const string& path) {
-    char *rm_args[] = {
-        (char*)"rm",
-        const_cast<char*>(path.c_str()),
-        NULL
-    };
-    return new_process("/usr/bin/rm", rm_args, -1, -1);
+inline int rm(const string& path) {
+    return unlink(path.c_str()); 
 }
 
 
@@ -118,11 +123,15 @@ int main(int argc, char* argv[]) {
         };
         status = new_process(exec_path.c_str(), run_args, -1, -1); 
         if(status == RUNTIME_ERROR) {
-            cerr<<"⚠️ Runtime error\n";
+            cerr<<"⚠️  Runtime error\n";
             return RUNTIME_ERROR;
         }
+        else if(status == TLE) {
+            cerr<<"⏱️  Time Limit Exceeded\n";
+            return TLE;
+        }
         else if(status == CHILD_PROCESS_ERROR) {
-            cerr<<"⚠️ Unable to run the binary\n";
+            cerr<<"⚠️  Unable to run the binary\n";
             return CHILD_PROCESS_ERROR;
         }
         return 0;
@@ -138,7 +147,7 @@ int main(int argc, char* argv[]) {
         string lab = "Lab" + string(argv[2]);
         string prob = "q" + string(argv[3]);
         string code = argv[4];
-        string tc_path = "/home/sb/" + lab + "/Problem" + prob + "/";
+        string tc_path = "./" + lab + "/Problem/" + prob + "/"; 
         auto [compile_status, binary] = compile(code.c_str());
         if(compile_status == COMPILE_ERROR) return COMPILE_ERROR;
         else if(compile_status == CHILD_PROCESS_ERROR) return CHILD_PROCESS_ERROR;
@@ -169,15 +178,17 @@ int main(int argc, char* argv[]) {
             };
             int status = new_process(exec_path.c_str(), run_args, input_fd, output_fd);
             close(input_fd);
-            close(output_fd);
-            if(status == COMPILE_ERROR) {
-                return COMPILE_ERROR;
-            }
-            else if(status == CHILD_PROCESS_ERROR) {
+            close(output_fd); 
+            if(status == CHILD_PROCESS_ERROR) {
                 return CHILD_PROCESS_ERROR;
             }
             else if(status == RUNTIME_ERROR) {
                 cerr<<"❌ Runtime Error";
+                i++;
+                continue;
+            }
+            else if(status == TLE) {
+                cerr<<"⏱️  Time Limit Exceeded\n";
                 i++;
                 continue;
             }
@@ -191,15 +202,13 @@ int main(int argc, char* argv[]) {
             };
             status = new_process("/usr/bin/diff", diff_args, -1, 2); 
             string output_file_path = "./" + output_file; 
-            if(rm(output_file_path) == CHILD_PROCESS_ERROR) {
-                cerr<<"⚠️ Unable to run rm command\n";
-            }
+            rm(output_file_path); 
             if(status == CHILD_PROCESS_ERROR) {
-                cerr<<"⚠️ Unable to run diff command\n";
+                cerr<<"⚠️  Unable to run diff command\n";
                 return CHILD_PROCESS_ERROR;
             }
             else if(status == 0) {
-                cerr<<"✔️ Accepted\n";
+                cerr<<"✔️  Accepted\n";
                 ac++;
             }
             else if(status == 1) {
