@@ -38,6 +38,7 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
         if(WIFEXITED(status)) {
             ret_status = WEXITSTATUS(status);
         }
+        else if(WIFSIGNALED(status)) ret_status = RUNTIME_ERROR;
         else ret_status = CHILD_PROCESS_ERROR;
     }
     return ret_status;
