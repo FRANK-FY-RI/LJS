@@ -170,7 +170,7 @@ int main(int argc, char* argv[]) {
             
             //run
             const int input_fd = open(input_file.c_str(), O_RDONLY);
-            const int output_fd = open(output_file.c_str(), O_WRONLY|O_CREAT|O_TRUNC, 0644);
+            const int output_fd = open(output_file.c_str(), O_WRONLY|O_CREAT|O_TRUNC, 0640);
             string exec_path = "./" + binary;
             char *run_args[] = {
                 const_cast<char*>(binary.c_str()),
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
                 return CHILD_PROCESS_ERROR;
             }
             else if(status == RUNTIME_ERROR) {
-                cerr<<"❌ Runtime Error";
+                cerr<<"❌ Runtime Error\n";
                 i++;
                 continue;
             }
@@ -200,7 +200,8 @@ int main(int argc, char* argv[]) {
                 const_cast<char*>(output_file.c_str()),
                 NULL
             };
-            status = new_process("/usr/bin/diff", diff_args, -1, 2); 
+            const int devnull = open("/dev/null", O_WRONLY);
+            status = new_process("/usr/bin/diff", diff_args, -1, devnull); 
             string output_file_path = "./" + output_file; 
             rm(output_file_path); 
             if(status == CHILD_PROCESS_ERROR) {
