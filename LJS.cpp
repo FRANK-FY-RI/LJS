@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <cstdlib>
@@ -7,10 +9,11 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 
-#define COMPILE_ERROR 1
+#define PROCESS_ERROR 1
 #define RUNTIME_ERROR 2
 #define TLE 3
-#define CHILD_PROCESS_ERROR 4
+#define MLE 4
+#define CHILD_PROCESS_ERROR 5
 
 using namespace std;
 
@@ -55,6 +58,110 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
 }
 
 
+//Isolate cleanup
+int isolate_cleanup(string boxid) {
+    string box_init = "--box-id=" + boxid;
+    char *args[] = {
+        (char*)"isolate",
+        (char*)"--cleanup",
+        const_cast<char*>(box_init.c_str()),
+        NULL
+    };
+    return new_process("/usr/local/bin/isolate", args, -1, 2);
+}
+
+
+//Isolate run
+pair<int, string> isolate_run(const string& binary_file, const string& binary_file_path, const string& input_file, const string& input_file_path) {
+    size_t pid = getpid();
+    pid = pid%1000;
+    string box_id = to_string(pid);
+    string box_path = "/var/local/lib/isolate/" + box_id + "/box/";
+    string box_id_init_arg = (string)"--box-id=" + box_id;
+
+    //Initialize the box
+    char *init_args[] = {
+        (char*)"isolate",
+        (char*)"--init",
+        const_cast<char*>(box_id_init_arg.c_str()),
+        NULL
+    };
+
+    int devnull = open("/dev/null", O_WRONLY);
+    int status = new_process("/usr/local/bin/isolate", init_args, -1, devnull);
+    // cout<<"Init status: "<<status<<endl;
+    if(status) return {status, box_id};
+
+    //Populate
+        //binary file
+    char *bin_copy_args[] = {
+        (char*)"cp",
+        const_cast<char*>(binary_file_path.c_str()),
+        const_cast<char*>(box_path.c_str()),
+        NULL
+    };
+    status = new_process("/usr/bin/cp", bin_copy_args, -1, 2);
+    // cout<<"binary copy status: "<<status<<endl;
+    if(status) {
+        isolate_cleanup(box_id);
+        return {status, ""};
+    }
+    
+        //input file 
+    char *inp_copy_args[] = {
+        (char*)"cp",
+        const_cast<char*>(input_file_path.c_str()),
+        const_cast<char*>(box_path.c_str()),
+        NULL
+    };
+    status = new_process("/usr/bin/cp", inp_copy_args, -1, 2);
+    // cout<<"input copy status: "<<status<<endl;
+    if(status) {
+        isolate_cleanup(box_id);    
+        return {status, box_id}; 
+    }
+
+    //run
+    string output_file = (string)"out" + box_id + ".txt";
+    string stdin_arg = (string)"--stdin=" + input_file;
+    string stdout_arg = (string)"--stdout=" + output_file;
+    char *run_args[] = {
+        (char*)"isolate",
+        const_cast<char*>(box_id_init_arg.c_str()),
+        (char*)"--run",
+        (char*)"--time=2",
+        (char*)"--mem=10240",
+        (char*)"--meta=/tmp/metadata.meta",
+        const_cast<char*>(stdin_arg.c_str()),
+        const_cast<char*>(stdout_arg.c_str()),
+        (char*)"--",
+        const_cast<char*>(binary_file.c_str()),
+        NULL
+    };
+    status = new_process("/usr/local/bin/isolate", run_args, -1, 2);
+    // cout<<"run status: "<<status<<endl;
+    if(status) {
+        isolate_cleanup(box_id);    
+        return {status, box_id};
+    }
+
+    //copy output file
+    string output_file_source = box_path + output_file;
+    string output_file_dest = (string)"/tmp/" + output_file;
+    char *copy_out_args[] = {
+        (char*)"cp",
+        const_cast<char*>(output_file_source.c_str()),
+        const_cast<char*>(output_file_dest.c_str()),
+        NULL
+    };
+    status = new_process("/usr/bin/cp", copy_out_args, -1, 2);
+    // cout<<"output copy status: "<<status<<endl;
+ 
+    isolate_cleanup(box_id);
+    return {status, box_id}; 
+}
+
+
 //Compile function
 pair<int, string> compile(const char *code) {
     const string binary = "sol";
@@ -65,17 +172,10 @@ pair<int, string> compile(const char *code) {
         const_cast<char*>(code),
         (char*)("-o"),
         const_cast<char*>(binary.c_str()),
+        (char*)"-static-libstdc++",
         NULL
     };
     int status = new_process("/usr/bin/g++", compile_args, -1, -1); 
-    if(status == COMPILE_ERROR) {
-        cerr<<"❌ Compilation error\n";
-        return {COMPILE_ERROR, ""};
-    }
-    else if(status == CHILD_PROCESS_ERROR) {
-        cerr<<"⚠️ Unable to run g++ compiler\n";
-        return {CHILD_PROCESS_ERROR, ""};
-    }
     return {0, binary};
 }
 
@@ -83,6 +183,26 @@ pair<int, string> compile(const char *code) {
 //delete a file
 inline int rm(const string& path) {
     return unlink(path.c_str()); 
+}
+
+
+//error message
+void error_msg(int status) {
+    if(status == CHILD_PROCESS_ERROR) {
+        cerr<<"Unable to run some program\n";
+    }
+    else if(status == TLE) {
+        cerr<<"Time Limit Exceeded\n";
+    }
+    else if(status == MLE) {
+        cerr<<"Memory Limit Exceeded\n";
+    }
+    else if(status == RUNTIME_ERROR) {
+        cerr<<"Runtime Error\n";
+    }
+    else if(status == PROCESS_ERROR) {
+        cerr<<"Process Error\n";
+    }
 }
 
 
@@ -114,26 +234,42 @@ int main(int argc, char* argv[]) {
         }
         string code = argv[2];
         auto [status, binary] = compile(code.c_str());
-        if(status == COMPILE_ERROR) return COMPILE_ERROR;
-        else if(status == CHILD_PROCESS_ERROR) return CHILD_PROCESS_ERROR;
-        string exec_path = "./" + binary;     
-        char *run_args[] = {
-            const_cast<char*>(exec_path.c_str()), 
+        if(status == PROCESS_ERROR) {
+            cerr<<"Compilation Error\n";
+            return status;
+        }
+        error_msg(status);
+        if(status) return status; 
+
+        ofstream input_file("./input.txt");
+        string temp;
+        while(getline(cin, temp)) {
+            input_file << temp << '\n';
+        }
+        input_file.close();
+        string binary_path = (string)"./" + binary;
+        auto [run_stat, boxid] = isolate_run(binary, binary_path, "input.txt", "./input.txt"); 
+        status = run_stat;
+        error_msg(status); 
+        if(status) return status;
+
+        //copy output file
+        string output_file = (string)"out" + boxid + ".txt";
+        string output_file_path = (string)"/tmp/" + output_file;
+        char *out_args[] = {
+            (char*)"cat",
+            const_cast<char*>(output_file_path.c_str()),
             NULL
         };
-        status = new_process(exec_path.c_str(), run_args, -1, -1); 
-        if(status == RUNTIME_ERROR) {
-            cerr<<"⚠️  Runtime error\n";
-            return RUNTIME_ERROR;
-        }
-        else if(status == TLE) {
-            cerr<<"⏱️  Time Limit Exceeded\n";
-            return TLE;
-        }
-        else if(status == CHILD_PROCESS_ERROR) {
-            cerr<<"⚠️  Unable to run the binary\n";
-            return CHILD_PROCESS_ERROR;
-        }
+        status = new_process("/usr/bin/cat", out_args, -1, -1);
+        error_msg(status);
+        if(status) status;
+        status = rm("out.txt");
+        error_msg(status);
+        if(status) status;
+        status = rm("./input.txt");
+        error_msg(status);
+        if(status) status;
         return 0;
     } 
     
@@ -148,19 +284,21 @@ int main(int argc, char* argv[]) {
         string prob = "q" + string(argv[3]);
         string code = argv[4];
         string tc_path = "./" + lab + "/Problem/" + prob + "/"; 
-        auto [compile_status, binary] = compile(code.c_str());
-        if(compile_status == COMPILE_ERROR) return COMPILE_ERROR;
-        else if(compile_status == CHILD_PROCESS_ERROR) return CHILD_PROCESS_ERROR;
+        auto [compile_status, binary] = compile(code.c_str()); 
+        error_msg(compile_status);
+        if(compile_status) return compile_status; 
+        string binary_path = (string)"./" + binary;
         int i = 1;
         int ac = 0;
         while(true) {
-            string input_file = tc_path + to_string(i) + ".in";
-            string answer_file = tc_path + to_string(i) + ".ans";
-            string output_file = to_string(i) + ".out";
+            string input_file = to_string(i) + ".in";
+            string input_file_path = tc_path + input_file;
+            string answer_file = to_string(i) + ".ans";
+            string answer_file_path = tc_path + answer_file;
             
             //Check if file exists
             bool file_exists = false;
-            if(access(input_file.c_str(), F_OK) == 0 ) file_exists = true;
+            if(access(input_file_path.c_str(), F_OK) == 0 ) file_exists = true;
             if(!file_exists) {
                 if(ac == i-1) cout<<"✅ ";
                 else cout<<"❌ ";
@@ -169,54 +307,36 @@ int main(int argc, char* argv[]) {
             }
             
             //run
-            const int input_fd = open(input_file.c_str(), O_RDONLY);
-            const int output_fd = open(output_file.c_str(), O_WRONLY|O_CREAT|O_TRUNC, 0640);
-            string exec_path = "./" + binary;
-            char *run_args[] = {
-                const_cast<char*>(binary.c_str()),
-                NULL
-            };
-            int status = new_process(exec_path.c_str(), run_args, input_fd, output_fd);
-            close(input_fd);
-            close(output_fd); 
-            if(status == CHILD_PROCESS_ERROR) {
-                return CHILD_PROCESS_ERROR;
-            }
-            else if(status == RUNTIME_ERROR) {
-                cerr<<"❌ Runtime Error\n";
-                i++;
-                continue;
-            }
-            else if(status == TLE) {
-                cerr<<"⏱️  Time Limit Exceeded\n";
-                i++;
-                continue;
-            }
+            auto [status, boxid] = isolate_run(binary, binary_path, input_file, input_file_path);
+            error_msg(status);
+            if(status == CHILD_PROCESS_ERROR) return status;
+            if(status) {i++; continue;} 
 
             //check the output and answer
+            string output_file = (string)"out" + boxid + ".txt";
+            string output_file_path = "/tmp/" + output_file;
             char *diff_args[] = {
                 (char*)"diff",
-                const_cast<char*>(answer_file.c_str()),
-                const_cast<char*>(output_file.c_str()),
+                const_cast<char*>(answer_file_path.c_str()),
+                const_cast<char*>(output_file_path.c_str()),
                 NULL
             };
             const int devnull = open("/dev/null", O_WRONLY);
             status = new_process("/usr/bin/diff", diff_args, -1, devnull); 
-            string output_file_path = "./" + output_file; 
             rm(output_file_path); 
-            if(status == CHILD_PROCESS_ERROR) {
-                cerr<<"⚠️  Unable to run diff command\n";
-                return CHILD_PROCESS_ERROR;
-            }
-            else if(status == 0) {
-                cerr<<"✔️  Accepted\n";
+            error_msg(status); 
+            if(status == CHILD_PROCESS_ERROR) return CHILD_PROCESS_ERROR;
+            if(!status) {
+                cout<<"Passed\n";
                 ac++;
             }
-            else if(status == 1) {
-                cerr<<"❌ Wrong Ans\n";
+            else {
+                cout<<"Wrong Answer\n";
             }
+            rm(output_file_path);
             i++;
         } 
+        rm(binary_path);
     }
     return 0;
 }
