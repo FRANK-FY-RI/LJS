@@ -178,7 +178,7 @@ pair<int, string> compile(const char *code) {
         NULL
     };
     int status = new_process("/usr/bin/g++", compile_args, -1, -1); 
-    return {0, binary};
+    return {status, binary};
 }
 
 
@@ -208,6 +208,22 @@ void error_msg(int status) {
 }
 
 
+//metadata verdict
+int metadata_verdict(const string& metadata_file_path) {
+    ifstream file(metadata_file_path); 
+    stringstream buffer;
+    buffer << file.rdbuf();
+    string metadata_file = buffer.str();
+    int index = metadata_file.find("status:");
+    if(index == string::npos) return 0;
+    index += 7;
+    const string verdict_s = metadata_file.substr(index, 2);
+    if(verdict_s == "TO") return TLE;
+    else if(verdict_s == "MO") return MLE;
+    else return RUNTIME_ERROR; 
+}
+
+
 
 int main(int argc, char* argv[]) {
     //Help
@@ -234,6 +250,8 @@ int main(int argc, char* argv[]) {
             cerr<<"LJS custom_run <source code>\n";
             return 1;
         }
+
+        //compile
         string code = argv[2];
         auto [status, binary] = compile(code.c_str());
         if(status == PROCESS_ERROR) {
@@ -243,23 +261,35 @@ int main(int argc, char* argv[]) {
         error_msg(status);
         if(status) return status; 
 
+        //take input
         ofstream input_file("./input.txt");
         string temp;
         while(getline(cin, temp)) {
             input_file << temp << '\n';
         }
         input_file.close();
+
+        //run
         string binary_path = (string)"./" + binary;
         auto [run_stat, boxid] = isolate_run(binary, binary_path, "input.txt", "./input.txt"); 
         status = run_stat;
-        error_msg(status); 
+        if(status == CHILD_PROCESS_ERROR) {
+            cerr<<"Error running isolate sandbox\n";
+            return CHILD_PROCESS_ERROR;
+        }
+        error_msg(status);
+        if(status) return status;
+
+        //check for metadata verdict
+        string metadata_file = (string)"meta" + boxid + ".meta";
+        string metadata_file_path = (string)"/tmp/" + metadata_file;
+        status = metadata_verdict(metadata_file_path);
+        error_msg(status);
         if(status) return status;
 
         //copy output file
         string output_file = (string)"out" + boxid + ".txt";
         string output_file_path = (string)"/tmp/" + output_file;
-        string metadata_file = (string)"meta" + boxid + ".meta";
-        string metadata_file_path = (string)"/tmp/" + metadata_file;
         char *out_args[] = {
             (char*)"cat",
             const_cast<char*>(output_file_path.c_str()),
