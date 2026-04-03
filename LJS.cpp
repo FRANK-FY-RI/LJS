@@ -94,6 +94,66 @@ int judge(const string& binary, const string& binary_path, const string& input_f
 }
 
 
+//run function
+int run(const string& tc_path, const string& code) {
+    
+    //compile
+    auto [status, binary] = compile(code.c_str());
+    if(status == CHILD_PROCESS_ERROR) {
+        cerr<<"Unable to spawn new process: g++\n";
+        return CHILD_PROCESS_ERROR;
+    }
+    if(status == PROCESS_ERROR) {
+        cerr<<"Compilation Error\n";
+        return status;
+    }
+    string binary_path = (string)"./" + binary;
+    error_msg(status);
+    if(status) {
+        rm(binary_path);
+        return status;
+    }          
+    
+    int i = 1;
+    int ac = 0;
+    while(true) {
+        string input_file = to_string(i) + ".in";
+        string input_file_path = tc_path + input_file;
+        string answer_file = to_string(i) + ".ans";
+        string answer_file_path = tc_path + answer_file;
+        
+        //Check if file exists
+        bool file_exists = false;
+        if(access(input_file_path.c_str(), F_OK) == 0 ) file_exists = true;
+        if(!file_exists) {
+            if(ac == i-1) cout<<"✅ ";
+            else cout<<"❌ ";
+            cout<<ac<<"/"<<i-1<<" Passed\n";
+            rm(binary_path);
+            if(ac == (i-1)) return AC;
+            return WA;
+        }
+        
+        int status = judge(binary, binary_path, input_file, input_file_path, answer_file_path);
+        
+        if(status == CHILD_PROCESS_ERROR) {
+            rm(binary_path);
+            return CHILD_PROCESS_ERROR;
+        }
+        cout<<"Test "<<i<<": ";
+        if(!status) {
+            cout<<"Passed\n";
+            ac++;
+        }
+        else {
+            cout<<"Wrong Answer\n";
+        }
+        i++; 
+    } 
+    return 0;
+}
+
+
 
 int main(int argc, char* argv[]) {
     //Help
@@ -113,6 +173,7 @@ int main(int argc, char* argv[]) {
     
     string cmd = argv[1];  
     
+    
     //custom_run
     if(cmd == "custom_run") {
         if(argc != 3) {
@@ -122,7 +183,7 @@ int main(int argc, char* argv[]) {
         }
         
         string code = argv[2];
-
+        
         //compile
         auto [status, binary] = compile(code.c_str());
         if(status == CHILD_PROCESS_ERROR) {
@@ -139,7 +200,7 @@ int main(int argc, char* argv[]) {
             rm(binary_path);
             return status;
         } 
-
+        
         //take input
         ofstream input_file("./input.txt");
         string temp;
@@ -147,13 +208,14 @@ int main(int argc, char* argv[]) {
             input_file << temp << '\n';
         }
         input_file.close(); 
-
+        
         //judge without answer
         status = judge(binary, binary_path, "input.txt", "./input.txt", "");
         rm(binary_path);
         rm("./input.txt");
         return status;
     } 
+    
     
     //run command
     if(cmd == "run") {
@@ -162,56 +224,34 @@ int main(int argc, char* argv[]) {
             cout<<"LJS run <Lab number> <Problem number> <source code>\n";
             return 1;
         }
-        string lab = "Lab" + string(argv[2]);
-        string prob = "q" + string(argv[3]);
-        string code = argv[4];
-        string tc_path = "./" + lab + "/Problem/" + prob + "/"; 
-       
-        //compile
-        auto [status, binary] = compile(code.c_str());
-        if(status == CHILD_PROCESS_ERROR) {
-            cerr<<"Unable to spawn new process: g++\n";
-            return CHILD_PROCESS_ERROR;
-        }
-        if(status == PROCESS_ERROR) {
-            cerr<<"Compilation Error\n";
-            return status;
-        }
-        string binary_path = (string)"./" + binary;
-        error_msg(status);
-        if(status) {
-            rm(binary_path);
-            return status;
-        }          
-
-        int i = 1;
-        int ac = 0;
-        while(true) {
-            string input_file = to_string(i) + ".in";
-            string input_file_path = tc_path + input_file;
-            string answer_file = to_string(i) + ".ans";
-            string answer_file_path = tc_path + answer_file;
-            
-            //Check if file exists
-            bool file_exists = false;
-            if(access(input_file_path.c_str(), F_OK) == 0 ) file_exists = true;
-            if(!file_exists) {
-                if(ac == i-1) cout<<"✅ ";
-                else cout<<"❌ ";
-                cout<<ac<<"/"<<i-1<<" Passed\n";
-                rm(binary_path);
-                break;
-            }
-            
-            int status = judge(binary, binary_path, input_file, input_file_path, answer_file_path);
-
-            if(status == CHILD_PROCESS_ERROR) {
-                rm(binary_path);
-                return CHILD_PROCESS_ERROR;
-            }
-            if(!status) {ac++;}
-            i++; 
-        } 
+        string lab = (string)"Lab" + argv[2];
+        string prob = (string)"q" + argv[3];
+        string tc_path = (string)"./" + lab + (string)"/Problem/" + prob + (string)"/"; 
+        
+        return run(tc_path, argv[4]);
     }
+    
+    
+    //submit
+    if(cmd == "submit") {
+        if(argc != 5) {
+            cout<<"Usage:\n";
+            cout<<"LJS submit <Lab number> <Problem number> <source code>\n";
+            return 1;
+        }
+        string lab = (string)"Lab" + argv[2];
+        string prob = (string)"q" + argv[3];
+        string tc_ex_path = (string)"./" + lab + (string)"/Problem/" + prob + (string)"/";
+        string tc_path = (string)"./" + lab + (string)"/Hidden/" + prob + (string)"/"; 
+        
+        //first check if ex_tc passes
+        if(run(tc_ex_path, argv[4]) == WA) {
+            cout<<"Example Test Case Failed\n";
+            return WA;
+        } 
+
+        return run(tc_path, argv[4]);
+    }
+
     return 0;
 }
