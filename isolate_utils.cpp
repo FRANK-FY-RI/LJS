@@ -119,6 +119,7 @@ int metadata_verdict(const string& metadata_file_path) {
     std::stringstream buffer;
     buffer << file.rdbuf();
     string metadata_file = buffer.str();
+    file.close();
     // cout<<"\n\nMetadata file contains: "<<metadata_file<<"\n\n";
     int index = metadata_file.find("status:");
     if(index == string::npos) return 0;
@@ -126,5 +127,5 @@ int metadata_verdict(const string& metadata_file_path) {
     const string verdict_s = metadata_file.substr(index, 2);
     if(verdict_s == "TO") return TLE;
     else if(verdict_s == "MO") return MLE;
-    else return RUNTIME_ERROR; 
+    return RUNTIME_ERROR; 
 }

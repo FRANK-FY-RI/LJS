@@ -9,6 +9,8 @@
 
 
 
+#define AC 0
+#define WA -1
 #define PROCESS_ERROR 1
 #define RUNTIME_ERROR 2
 #define TLE 3

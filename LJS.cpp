@@ -27,6 +27,74 @@ void error_msg(int status) {
 
 
 
+//Judge function
+int judge(const string& binary, const string& binary_path, const string& input_file, const string& input_file_path, const string& answer_file_path) { 
+ 
+    //run
+    auto [status, boxid] = isolate_run(binary, binary_path, input_file, input_file_path);
+    if(status == CHILD_PROCESS_ERROR) {
+        cerr<<"Unable to spawn new process: isolate sandbox\n"; 
+        return status;
+    } 
+
+    //check the metadata verdict
+    string metadata_file = (string)"metadata" + boxid + (string)".meta";
+    string metadata_file_path = (string)"/tmp/" + metadata_file;
+    status = metadata_verdict(metadata_file_path);
+    rm(metadata_file_path);
+    if(status == CHILD_PROCESS_ERROR) {
+        cerr<<"Error opening file: "<<metadata_file_path<<'\n'; 
+        return CHILD_PROCESS_ERROR;
+    }
+    error_msg(status);
+    if(status) return status;
+
+    string output_file = (string)"out" + boxid + ".txt";
+    string output_file_path = (string)"/tmp/" + output_file;
+
+    //No answer to check from
+    if(answer_file_path.empty()) {
+        //show output file
+        char *out_args[] = {
+            (char*)"cat",
+            const_cast<char*>(output_file_path.c_str()),
+            NULL
+        };
+        status = new_process("/usr/bin/cat", out_args, -1, -1);
+        if(status == CHILD_PROCESS_ERROR) {
+            cerr<<"Unable to spawn new process: cat\n";
+        } 
+        else if(status) {
+            cerr<<"Output file not present\n";
+        }
+
+        //delete redundant files
+        rm(output_file_path);  
+        return status; 
+    }
+
+    //check the output and answer 
+    char *diff_args[] = {
+        (char*)"diff",
+        const_cast<char*>(answer_file_path.c_str()),
+        const_cast<char*>(output_file_path.c_str()),
+        NULL
+    };
+    const int devnull = open("/dev/null", O_WRONLY);
+    status = new_process("/usr/bin/diff", diff_args, -1, devnull); 
+    rm(output_file_path); 
+    if(status == CHILD_PROCESS_ERROR) {
+        cerr<<"Unable to spawn new process: diff\n"; 
+        return CHILD_PROCESS_ERROR;
+    }
+    if(!status) {
+        return AC;
+    }
+    return WA; 
+}
+
+
+
 int main(int argc, char* argv[]) {
     //Help
     if(argc == 1 || string(argv[1]) == "--help") {
@@ -50,18 +118,27 @@ int main(int argc, char* argv[]) {
         if(argc != 3) {
             cerr<<"Usage:\n";
             cerr<<"LJS custom_run <source code>\n";
-            return 1;
+            return PROCESS_ERROR;
         }
+        
+        string code = argv[2];
 
         //compile
-        string code = argv[2];
         auto [status, binary] = compile(code.c_str());
+        if(status == CHILD_PROCESS_ERROR) {
+            cerr<<"Unable to spawn new process: g++\n";
+            return CHILD_PROCESS_ERROR;
+        }
         if(status == PROCESS_ERROR) {
             cerr<<"Compilation Error\n";
             return status;
         }
+        string binary_path = (string)"./" + binary;
         error_msg(status);
-        if(status) return status; 
+        if(status) {
+            rm(binary_path);
+            return status;
+        } 
 
         //take input
         ofstream input_file("./input.txt");
@@ -69,49 +146,13 @@ int main(int argc, char* argv[]) {
         while(getline(cin, temp)) {
             input_file << temp << '\n';
         }
-        input_file.close();
+        input_file.close(); 
 
-        //run
-        string binary_path = (string)"./" + binary;
-        auto [run_stat, boxid] = isolate_run(binary, binary_path, "input.txt", "./input.txt"); 
-        status = run_stat;
-        if(status == CHILD_PROCESS_ERROR) {
-            cerr<<"Error running isolate sandbox\n";
-            return CHILD_PROCESS_ERROR;
-        } 
-
-        //check for metadata verdict
-        string metadata_file = (string)"metadata" + boxid + ".meta";
-        string metadata_file_path = (string)"/tmp/" + metadata_file;
-        status = metadata_verdict(metadata_file_path);
-        // cout<<"metadata verdict"<<status<<endl;
-        error_msg(status);
-        if(status) return status;
-
-        //copy output file
-        string output_file = (string)"out" + boxid + ".txt";
-        string output_file_path = (string)"/tmp/" + output_file;
-        char *out_args[] = {
-            (char*)"cat",
-            const_cast<char*>(output_file_path.c_str()),
-            NULL
-        };
-        status = new_process("/usr/bin/cat", out_args, -1, -1);
-        if(status == CHILD_PROCESS_ERROR) {
-            cerr<<"Unable to show output file\n";
-            return CHILD_PROCESS_ERROR;
-        } 
-        if(status) {
-            cerr<<"Output file not present\n";
-            return status;
-        }
-
-        //delete redundant files
-        rm(output_file_path); 
-        rm("./input.txt"); 
-        rm(metadata_file_path);
+        //judge without answer
+        status = judge(binary, binary_path, "input.txt", "./input.txt", "");
         rm(binary_path);
-        return 0;
+        rm("./input.txt");
+        return status;
     } 
     
     //run command
@@ -125,10 +166,24 @@ int main(int argc, char* argv[]) {
         string prob = "q" + string(argv[3]);
         string code = argv[4];
         string tc_path = "./" + lab + "/Problem/" + prob + "/"; 
-        auto [compile_status, binary] = compile(code.c_str()); 
-        error_msg(compile_status);
-        if(compile_status) return compile_status; 
+       
+        //compile
+        auto [status, binary] = compile(code.c_str());
+        if(status == CHILD_PROCESS_ERROR) {
+            cerr<<"Unable to spawn new process: g++\n";
+            return CHILD_PROCESS_ERROR;
+        }
+        if(status == PROCESS_ERROR) {
+            cerr<<"Compilation Error\n";
+            return status;
+        }
         string binary_path = (string)"./" + binary;
+        error_msg(status);
+        if(status) {
+            rm(binary_path);
+            return status;
+        }          
+
         int i = 1;
         int ac = 0;
         while(true) {
@@ -144,43 +199,19 @@ int main(int argc, char* argv[]) {
                 if(ac == i-1) cout<<"✅ ";
                 else cout<<"❌ ";
                 cout<<ac<<"/"<<i-1<<" Passed\n";
+                rm(binary_path);
                 break;
             }
             
-            //run
-            auto [status, boxid] = isolate_run(binary, binary_path, input_file, input_file_path);
-            error_msg(status);
-            if(status == CHILD_PROCESS_ERROR) return status;
-            if(status) {i++; continue;} 
+            int status = judge(binary, binary_path, input_file, input_file_path, answer_file_path);
 
-            //check the output and answer
-            string output_file = (string)"out" + boxid + ".txt";
-            string output_file_path = "/tmp/" + output_file;
-            string metadata_file = (string)"metadata" + boxid + (string)".meta";
-            string metadata_file_path = (string)"/tmp/" + metadata_file;
-            char *diff_args[] = {
-                (char*)"diff",
-                const_cast<char*>(answer_file_path.c_str()),
-                const_cast<char*>(output_file_path.c_str()),
-                NULL
-            };
-            const int devnull = open("/dev/null", O_WRONLY);
-            status = new_process("/usr/bin/diff", diff_args, -1, devnull); 
-            rm(output_file_path); 
-            error_msg(status); 
-            if(status == CHILD_PROCESS_ERROR) return CHILD_PROCESS_ERROR;
-            if(!status) {
-                cout<<"Passed\n";
-                ac++;
+            if(status == CHILD_PROCESS_ERROR) {
+                rm(binary_path);
+                return CHILD_PROCESS_ERROR;
             }
-            else {
-                cout<<"Wrong Answer\n";
-            }
-            rm(output_file_path);
-            rm(metadata_file_path);
-            i++;
+            if(!status) {ac++;}
+            i++; 
         } 
-        rm(binary_path);
     }
     return 0;
 }
