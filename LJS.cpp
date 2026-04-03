@@ -35,11 +35,6 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
             close(output_fd);
         }
 
-        struct rlimit rl;
-        rl.rlim_cur = 2;
-        rl.rlim_max = 3;
-        setrlimit(RLIMIT_CPU, &rl);
-
         execv(path, args);
         exit(CHILD_PROCESS_ERROR);
     }
@@ -47,11 +42,7 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
         waitpid(pid, &status, 0);
         if(WIFEXITED(status)) {
             ret_status = WEXITSTATUS(status);
-        }
-        else if(WIFSIGNALED(status)) {
-            if(WTERMSIG(status) == SIGXCPU || WTERMSIG(status) == SIGALRM) ret_status = TLE;
-            else ret_status = RUNTIME_ERROR;
-        }
+        } 
         else ret_status = CHILD_PROCESS_ERROR;
     }
     return ret_status;
@@ -211,9 +202,14 @@ void error_msg(int status) {
 //metadata verdict
 int metadata_verdict(const string& metadata_file_path) {
     ifstream file(metadata_file_path); 
+    if(!file.is_open()) {
+        cerr<<"Error opening metadata file "<<metadata_file_path<<endl;
+        return CHILD_PROCESS_ERROR;
+    }
     stringstream buffer;
     buffer << file.rdbuf();
     string metadata_file = buffer.str();
+    // cout<<"\n\nMetadata file contains: "<<metadata_file<<"\n\n";
     int index = metadata_file.find("status:");
     if(index == string::npos) return 0;
     index += 7;
@@ -276,14 +272,13 @@ int main(int argc, char* argv[]) {
         if(status == CHILD_PROCESS_ERROR) {
             cerr<<"Error running isolate sandbox\n";
             return CHILD_PROCESS_ERROR;
-        }
-        error_msg(status);
-        if(status) return status;
+        } 
 
         //check for metadata verdict
-        string metadata_file = (string)"meta" + boxid + ".meta";
+        string metadata_file = (string)"metadata" + boxid + ".meta";
         string metadata_file_path = (string)"/tmp/" + metadata_file;
         status = metadata_verdict(metadata_file_path);
+        // cout<<"metadata verdict"<<status<<endl;
         error_msg(status);
         if(status) return status;
 
@@ -355,7 +350,7 @@ int main(int argc, char* argv[]) {
             //check the output and answer
             string output_file = (string)"out" + boxid + ".txt";
             string output_file_path = "/tmp/" + output_file;
-            string metadata_file = (string)"meta" + boxid + (string)".meta";
+            string metadata_file = (string)"metadata" + boxid + (string)".meta";
             string metadata_file_path = (string)"/tmp/" + metadata_file;
             char *diff_args[] = {
                 (char*)"diff",
