@@ -338,7 +338,7 @@ int main(int argc, char* argv[]) {
                 if(ac == i-1) cout<<"✅ ";
                 else cout<<"❌ ";
                 cout<<ac<<"/"<<i-1<<" Passed\n";
-                return 0;
+                break;
             }
             
             //run
