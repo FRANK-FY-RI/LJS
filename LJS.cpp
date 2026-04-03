@@ -123,6 +123,8 @@ pair<int, string> isolate_run(const string& binary_file, const string& binary_fi
 
     //run
     string output_file = (string)"out" + box_id + ".txt";
+    string metadata_file_path = (string)"/tmp/metadata" + box_id + ".meta";
+    string metadata_init = (string)"--meta=" + metadata_file_path;
     string stdin_arg = (string)"--stdin=" + input_file;
     string stdout_arg = (string)"--stdout=" + output_file;
     char *run_args[] = {
@@ -131,7 +133,7 @@ pair<int, string> isolate_run(const string& binary_file, const string& binary_fi
         (char*)"--run",
         (char*)"--time=2",
         (char*)"--mem=10240",
-        (char*)"--meta=/tmp/metadata.meta",
+        const_cast<char*>(metadata_init.c_str()),
         const_cast<char*>(stdin_arg.c_str()),
         const_cast<char*>(stdout_arg.c_str()),
         (char*)"--",
@@ -256,20 +258,28 @@ int main(int argc, char* argv[]) {
         //copy output file
         string output_file = (string)"out" + boxid + ".txt";
         string output_file_path = (string)"/tmp/" + output_file;
+        string metadata_file = (string)"meta" + boxid + ".meta";
+        string metadata_file_path = (string)"/tmp/" + metadata_file;
         char *out_args[] = {
             (char*)"cat",
             const_cast<char*>(output_file_path.c_str()),
             NULL
         };
         status = new_process("/usr/bin/cat", out_args, -1, -1);
-        error_msg(status);
-        if(status) status;
-        status = rm("out.txt");
-        error_msg(status);
-        if(status) status;
-        status = rm("./input.txt");
-        error_msg(status);
-        if(status) status;
+        if(status == CHILD_PROCESS_ERROR) {
+            cerr<<"Unable to show output file\n";
+            return CHILD_PROCESS_ERROR;
+        } 
+        if(status) {
+            cerr<<"Output file not present\n";
+            return status;
+        }
+
+        //delete redundant files
+        rm(output_file_path); 
+        rm("./input.txt"); 
+        rm(metadata_file_path);
+        rm(binary_path);
         return 0;
     } 
     
@@ -315,6 +325,8 @@ int main(int argc, char* argv[]) {
             //check the output and answer
             string output_file = (string)"out" + boxid + ".txt";
             string output_file_path = "/tmp/" + output_file;
+            string metadata_file = (string)"meta" + boxid + (string)".meta";
+            string metadata_file_path = (string)"/tmp/" + metadata_file;
             char *diff_args[] = {
                 (char*)"diff",
                 const_cast<char*>(answer_file_path.c_str()),
@@ -334,6 +346,7 @@ int main(int argc, char* argv[]) {
                 cout<<"Wrong Answer\n";
             }
             rm(output_file_path);
+            rm(metadata_file_path);
             i++;
         } 
         rm(binary_path);
