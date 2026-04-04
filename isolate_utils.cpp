@@ -3,12 +3,12 @@
 
 
 //Isolate run
-pair<int, string> isolate_run(const string& binary_file, const string& binary_file_path, const string& input_file, const string& input_file_path) {
+std::pair<int, std::string> isolate_run(const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path) {
     size_t pid = getpid();
     pid = pid%1000;
-    string box_id = std::to_string(pid);
-    string box_path = "/var/local/lib/isolate/" + box_id + "/box/";
-    string box_id_init_arg = (string)"--box-id=" + box_id;
+    std::string box_id = std::to_string(pid);
+    std::string box_path = "/var/local/lib/isolate/" + box_id + "/box/";
+    std::string box_id_init_arg = (std::string)"--box-id=" + box_id;
 
     //Initialize the box
     char *init_args[] = {
@@ -18,8 +18,12 @@ pair<int, string> isolate_run(const string& binary_file, const string& binary_fi
         NULL
     };
 
-    int devnull = open("/dev/null", O_WRONLY);
+    const int devnull = open("/dev/null", O_WRONLY);
+    if(devnull == -1) {
+        return {CHILD_PROCESS_ERROR, box_id};
+    }
     int status = new_process("/usr/local/bin/isolate", init_args, -1, devnull);
+    close(devnull);
     // cout<<"Init status: "<<status<<endl;
     if(status) return {status, box_id};
 
@@ -35,7 +39,7 @@ pair<int, string> isolate_run(const string& binary_file, const string& binary_fi
     // cout<<"binary copy status: "<<status<<endl;
     if(status) {
         isolate_cleanup(box_id);
-        return {status, ""};
+        return {status, box_id};
     }
     
         //input file 
@@ -53,11 +57,11 @@ pair<int, string> isolate_run(const string& binary_file, const string& binary_fi
     }
 
     //run
-    string output_file = (string)"out" + box_id + ".txt";
-    string metadata_file_path = (string)"/tmp/metadata" + box_id + ".meta";
-    string metadata_init = (string)"--meta=" + metadata_file_path;
-    string stdin_arg = (string)"--stdin=" + input_file;
-    string stdout_arg = (string)"--stdout=" + output_file;
+    std::string output_file = (std::string)"out" + box_id + ".txt";
+    std::string metadata_file_path = (std::string)"/tmp/metadata" + box_id + ".meta";
+    std::string metadata_init = (std::string)"--meta=" + metadata_file_path;
+    std::string stdin_arg = (std::string)"--stdin=" + input_file;
+    std::string stdout_arg = (std::string)"--stdout=" + output_file;
     char *run_args[] = {
         (char*)"isolate",
         const_cast<char*>(box_id_init_arg.c_str()),
@@ -79,8 +83,8 @@ pair<int, string> isolate_run(const string& binary_file, const string& binary_fi
     }
 
     //copy output file
-    string output_file_source = box_path + output_file;
-    string output_file_dest = (string)"/tmp/" + output_file;
+    std::string output_file_source = box_path + output_file;
+    std::string output_file_dest = (std::string)"/tmp/" + output_file;
     char *copy_out_args[] = {
         (char*)"cp",
         const_cast<char*>(output_file_source.c_str()),
@@ -97,8 +101,8 @@ pair<int, string> isolate_run(const string& binary_file, const string& binary_fi
 
 
 //Isolate cleanup
-int isolate_cleanup(string boxid) {
-    string box_init = "--box-id=" + boxid;
+int isolate_cleanup(std::string boxid) {
+    std::string box_init = "--box-id=" + boxid;
     char *args[] = {
         (char*)"isolate",
         (char*)"--cleanup",
@@ -111,20 +115,20 @@ int isolate_cleanup(string boxid) {
 
 
 //metadata verdict
-int metadata_verdict(const string& metadata_file_path) {
+int metadata_verdict(const std::string& metadata_file_path) {
     std::ifstream file(metadata_file_path); 
     if(!file.is_open()) {
         return CHILD_PROCESS_ERROR;
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
-    string metadata_file = buffer.str();
+    std::string metadata_file = buffer.str();
     file.close();
     // cout<<"\n\nMetadata file contains: "<<metadata_file<<"\n\n";
     int index = metadata_file.find("status:");
-    if(index == string::npos) return 0;
+    if(index == std::string::npos) return 0;
     index += 7;
-    const string verdict_s = metadata_file.substr(index, 2);
+    const std::string verdict_s = metadata_file.substr(index, 2);
     if(verdict_s == "TO") return TLE;
     else if(verdict_s == "MO") return MLE;
     return RUNTIME_ERROR; 

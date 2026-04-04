@@ -26,6 +26,15 @@ void error_msg(int status) {
 }
 
 
+//isAlphaNumeric
+bool isAlphaNumeric(const string& s) {
+    for (char c : s) {
+        if (!isalnum(c)) return false;
+    }
+    return true;
+}
+
+
 
 //Judge function
 int judge(const string& binary, const string& binary_path, const string& input_file, const string& input_file_path, const string& answer_file_path) { 
@@ -81,7 +90,12 @@ int judge(const string& binary, const string& binary_path, const string& input_f
         NULL
     };
     const int devnull = open("/dev/null", O_WRONLY);
+    if(devnull == -1) {
+        cerr<<"Unable to find /dev/null\n";
+        return PROCESS_ERROR;
+    }
     status = new_process("/usr/bin/diff", diff_args, -1, devnull); 
+    close(devnull);
     rm(output_file_path); 
     if(status == CHILD_PROCESS_ERROR) {
         cerr<<"Unable to spawn new process: diff\n"; 
@@ -98,20 +112,20 @@ int judge(const string& binary, const string& binary_path, const string& input_f
 int run(const string& tc_path, const string& code) {
     
     //compile
-    auto [status, binary] = compile(code.c_str());
-    if(status == CHILD_PROCESS_ERROR) {
+    auto [compile_status, binary] = compile(code.c_str());
+    if(compile_status == CHILD_PROCESS_ERROR) {
         cerr<<"Unable to spawn new process: g++\n";
         return CHILD_PROCESS_ERROR;
     }
-    if(status == PROCESS_ERROR) {
+    if(compile_status == PROCESS_ERROR) {
         cerr<<"Compilation Error\n";
-        return status;
+        return compile_status;
     }
     string binary_path = (string)"./" + binary;
-    error_msg(status);
-    if(status) {
+    error_msg(compile_status);
+    if(compile_status) {
         rm(binary_path);
-        return status;
+        return compile_status;
     }          
     
     int i = 1;
@@ -132,6 +146,11 @@ int run(const string& tc_path, const string& code) {
             rm(binary_path);
             if(ac == (i-1)) return AC;
             return WA;
+        }
+        if(access(answer_file_path.c_str(), F_OK) != 0) {
+            cerr<<"Answer file "<<i<<" not present\n";
+            i++;
+            continue;
         }
         
         int status = judge(binary, binary_path, input_file, input_file_path, answer_file_path);
@@ -226,6 +245,12 @@ int main(int argc, char* argv[]) {
         }
         string lab = (string)"Lab" + argv[2];
         string prob = (string)"q" + argv[3];
+        if(!isAlphaNumeric(lab) || !isAlphaNumeric(prob)) {
+            cerr<<"Lab Number and Problem Number must be AlphaNumeric\n";
+            return 1;
+        }
+        
+        
         string tc_path = (string)"./" + lab + (string)"/Problem/" + prob + (string)"/"; 
         
         return run(tc_path, argv[4]);
@@ -241,6 +266,11 @@ int main(int argc, char* argv[]) {
         }
         string lab = (string)"Lab" + argv[2];
         string prob = (string)"q" + argv[3];
+        if(!isAlphaNumeric(lab) || !isAlphaNumeric(prob)) {
+            cerr<<"Lab Number and Problem Number must be AlphaNumeric\n";
+            return 1;
+        }
+
         string tc_ex_path = (string)"./" + lab + (string)"/Problem/" + prob + (string)"/";
         string tc_path = (string)"./" + lab + (string)"/Hidden/" + prob + (string)"/"; 
         

@@ -1,15 +1,15 @@
 #include "process_utils.hpp"
 
 
-using std::pair;
-using std::string;
 
 
-
-//fucntion to start a new process
+//function to start a new process
 int new_process(const char* path, char *args[], const int input_fd, const int output_fd) {
     int status;
     pid_t pid = fork();
+    if(pid == -1) {
+        return CHILD_PROCESS_ERROR; 
+    }
     int ret_status;
     if(pid == 0) {
         //redirect input
@@ -40,8 +40,8 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
 
 
 //Compile function
-pair<int, string> compile(const char *code) {
-    const string binary = "sol";
+std::pair<int, std::string> compile(const char *code) {
+    const std::string binary = "sol";
     char *compile_args[] = {
         (char*)"g++",
         (char*)"-std=c++23",

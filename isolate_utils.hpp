@@ -8,20 +8,17 @@
 #include <fstream>
 #include <sstream>
 
-using std::pair;
-using std::string;
-
 
 //Isolate Runner
-pair<int, string> isolate_run(const string& binary_file, const string& binary_file_path, const string& input_file, const string& input_file_path);
+std::pair<int, std::string> isolate_run(const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path);
 
 
 //Isolate Cleaner
-int isolate_cleanup(string boxid);
+int isolate_cleanup(std::string boxid);
 
 
 //Metadata Parser
-int metadata_verdict(const string& metadata_file_path);
+int metadata_verdict(const std::string& metadata_file_path);
 
 
 
