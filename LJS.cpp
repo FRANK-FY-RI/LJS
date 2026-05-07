@@ -27,7 +27,7 @@ void error_msg(int status) {
 
 
 //isAlphaNumeric
-bool isAlphaNumeric(const string& s) {
+bool isAlphaNumeric(const string& s) noexcept {
     for (char c : s) {
         if (!isalnum(c)) return false;
     }
@@ -244,8 +244,8 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         string lab = (string)"Lab" + argv[2];
-        string prob = (string)"q" + argv[3];
-        if(!isAlphaNumeric(lab) || !isAlphaNumeric(prob)) {
+        string prob = (string)"prob_" + argv[3];
+        if(!isAlphaNumeric(argv[2]) || !isAlphaNumeric(argv[3])) {
             cerr<<"Lab Number and Problem Number must be AlphaNumeric\n";
             return 1;
         }
@@ -265,8 +265,8 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         string lab = (string)"Lab" + argv[2];
-        string prob = (string)"q" + argv[3];
-        if(!isAlphaNumeric(lab) || !isAlphaNumeric(prob)) {
+        string prob = (string)"prob_" + argv[3];
+        if(!isAlphaNumeric(argv[2]) || !isAlphaNumeric(argv[2])) {
             cerr<<"Lab Number and Problem Number must be AlphaNumeric\n";
             return 1;
         }
