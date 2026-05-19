@@ -126,7 +126,7 @@ int metadata_verdict(const std::string& metadata_file_path) {
     file.close();
     // cout<<"\n\nMetadata file contains: "<<metadata_file<<"\n\n";
     int index = metadata_file.find("status:");
-    if(std::string::npos) return 0;
+    if(index == std::string::npos) return 0;
     index += 7;
     const std::string verdict_s = metadata_file.substr(index, 2);
     if(verdict_s == "TO") return TLE;
