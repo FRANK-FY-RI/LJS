@@ -266,7 +266,7 @@ int main(int argc, char* argv[]) {
         }
         string lab = (string)"Lab" + argv[2];
         string prob = (string)"prob_" + argv[3];
-        if(!isAlphaNumeric(argv[2]) || !isAlphaNumeric(argv[2])) {
+        if(!isAlphaNumeric(argv[2]) || !isAlphaNumeric(argv[3])) {
             cerr<<"Lab Number and Problem Number must be AlphaNumeric\n";
             return 1;
         }
