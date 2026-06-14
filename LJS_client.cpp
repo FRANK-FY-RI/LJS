@@ -1,4 +1,5 @@
 #include "socket.hpp"
+#include <unistd.h>
 #include <iostream>
 
 bool isAlphaNumeric(const std::string& s) noexcept {
@@ -84,6 +85,7 @@ int main(int argc, char *argv[]) {
         } 
     } 
 
+    //send the arguments to the judge
     for(int i = 1; i<argc; i++) {
         int bytes_sent = send(sfd, argv[i], strlen(argv[i]), 0);
         if(bytes_sent == -1) {
@@ -96,9 +98,17 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    /*
-    get the verdict from judge (in progress) 
-    */
-
+    //print the verdict from the judge
+    char buf[MAXDATASIZE];
+    int bytes_read;
+    while((bytes_read = recv(sfd, buf, MAXDATASIZE, 0)) > 0) {
+        if(write(STDOUT_FILENO, buf, bytes_read) != bytes_read) {
+            perror("partial/failed write"); 
+        }
+    }
+    if(bytes_read == -1) {
+        perror("recv");
+    }
+    close(sfd);
     return 0;
 }
