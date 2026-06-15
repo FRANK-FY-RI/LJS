@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
             return 1; 
         }
     }
-    else if(strcmp(argv[1], "submit")) {
+    else if(strcmp(argv[1], "submit")==0) {
         if(argc != 5) {
             std::cout<<"Usage:\n";
             std::cout<<"LJS submit <Lab number> <Problem number> <source code>\n";
@@ -58,6 +58,13 @@ int main(int argc, char *argv[]) {
         std::cout << "Examples:\n";
         std::cout << "  LJS run 1 1 prob_1.cpp\n";
     }
+    
+    if(strcmp(argv[1], "run")==0 || strcmp(argv[1], "submit")==0) {
+        if(!isAlphaNumeric(argv[2]) || !isAlphaNumeric(argv[3])) {
+            std::cerr<<"Lab Number and Problem Number must be AlphaNumeric\n";
+            return 1;
+        } 
+    } 
 
     int sfd;
     if((sfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
@@ -78,21 +85,17 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if(strcmp(argv[1], "run")==0 || strcmp(argv[1], "submit")==0) {
-        if(!isAlphaNumeric(argv[2]) || !isAlphaNumeric(argv[3])) {
-            std::cerr<<"Lab Number and Problem Number must be AlphaNumeric\n";
-            return 1;
-        } 
-    } 
+    std::cout<<"connection established\n";
 
     //send the arguments to the judge
-    for(int i = 1; i<argc; i++) {
-        int bytes_sent = send(sfd, argv[i], strlen(argv[i]), 0);
+    for(int i = 1; i<argc; i++) { 
+        std::string msg = static_cast<std::string>(argv[i]) + '\n';
+        int bytes_sent = send(sfd, msg.c_str(), msg.size(), 0);
         if(bytes_sent == -1) {
             perror("send");
             return 1;
         }
-        if(bytes_sent != strlen(argv[i])) {
+        if(bytes_sent != msg.size()) {
             perror("partial send");
             return 1;
         }
