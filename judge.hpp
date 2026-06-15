@@ -1,0 +1,189 @@
+#include "process_utils.hpp"
+#include "isolate_utils.hpp"
+#include <iostream>
+#include <vector>
+
+
+//error message
+void error_msg(int status) {
+    if(status == CHILD_PROCESS_ERROR) {
+        std::cerr<<"Unable to run some program\n";
+    }
+    else if(status == TLE) {
+        std::cerr<<"Time Limit Exceeded\n";
+    }
+    else if(status == MLE) {
+        std::cerr<<"Memory Limit Exceeded\n";
+    }
+    else if(status == RUNTIME_ERROR) {
+        std::cerr<<"Runtime Error\n";
+    }
+    else if(status == PROCESS_ERROR) {
+        std::cerr<<"Process Error\n";
+    }
+}
+
+//judge function
+int judge(const std::string& binary, const std::string& binary_path, const std::string& input_file, const std::string& input_file_path, const std::string& answer_file_path) { 
+ 
+    //run
+    auto [status, boxid] = isolate_run(binary, binary_path, input_file, input_file_path);
+    if(status == CHILD_PROCESS_ERROR) {
+        std::cerr<<"Unable to spawn new process: isolate sandbox\n"; 
+        return status;
+    } 
+
+    //check the metadata verdict
+    std::string metadata_file = (std::string)"metadata" + boxid + (std::string)".meta";
+    std::string metadata_file_path = (std::string)"/tmp/" + metadata_file;
+    status = metadata_verdict(metadata_file_path);
+    rm(metadata_file_path);
+    if(status == CHILD_PROCESS_ERROR) {
+        std::cerr<<"Error opening file: "<<metadata_file_path<<'\n'; 
+        return CHILD_PROCESS_ERROR;
+    }
+    error_msg(status);
+    if(status) return status;
+
+    std::string output_file = (std::string)"out" + boxid + ".txt";
+    std::string output_file_path = (std::string)"/tmp/" + output_file;
+
+    //No answer to check from
+    if(answer_file_path.empty()) {
+        //show output file
+        char *out_args[] = {
+            (char*)"cat",
+            const_cast<char*>(output_file_path.c_str()),
+            NULL
+        };
+        status = new_process("/usr/bin/cat", out_args, -1, -1);
+        if(status == CHILD_PROCESS_ERROR) {
+            std::cerr<<"Unable to spawn new process: cat\n";
+        } 
+        else if(status) {
+            std::cerr<<"Output file not present\n";
+        }
+
+        //delete redundant files
+        rm(output_file_path);  
+        return status; 
+    }
+
+    //check the output and answer 
+    char *diff_args[] = {
+        (char*)"diff",
+        const_cast<char*>(answer_file_path.c_str()),
+        const_cast<char*>(output_file_path.c_str()),
+        NULL
+    };
+    const int devnull = open("/dev/null", O_WRONLY);
+    if(devnull == -1) {
+        std::cerr<<"Unable to find /dev/null\n";
+        return PROCESS_ERROR;
+    }
+    status = new_process("/usr/bin/diff", diff_args, -1, devnull); 
+    close(devnull);
+    rm(output_file_path); 
+    if(status == CHILD_PROCESS_ERROR) {
+        std::cerr<<"Unable to spawn new process: diff\n"; 
+        return CHILD_PROCESS_ERROR;
+    }
+    if(!status) {
+        return AC;
+    }
+    return WA; 
+}
+
+
+
+//run function
+int runfn(const std::string& tc_path, const std::string& code) {
+    
+    //compile
+    auto [compile_status, binary] = compile(code.c_str());
+    if(compile_status == CHILD_PROCESS_ERROR) {
+        std::cerr<<"Unable to spawn new process: g++\n";
+        return CHILD_PROCESS_ERROR;
+    }
+    if(compile_status == PROCESS_ERROR) {
+        std::cerr<<"Compilation Error\n";
+        return compile_status;
+    }
+    std::string binary_path = (std::string)"./" + binary;
+    error_msg(compile_status);
+    if(compile_status) {
+        rm(binary_path);
+        return compile_status;
+    }          
+    
+    int i = 1;
+    int ac = 0;
+    while(true) {
+        std::string input_file = std::to_string(i) + ".in";
+        std::string input_file_path = tc_path + input_file;
+        std::string answer_file = std::to_string(i) + ".ans";
+        std::string answer_file_path = tc_path + answer_file;
+        
+        //Check if file exists
+        bool file_exists = false;
+        if(access(input_file_path.c_str(), F_OK) == 0 ) file_exists = true;
+        if(!file_exists) {
+            if(ac == i-1) std::cout<<"✅ ";
+            else std::cout<<"❌ ";
+            std::cout<<ac<<"/"<<i-1<<" Passed\n";
+            rm(binary_path);
+            if(ac == (i-1)) return AC;
+            return WA;
+        }
+        if(access(answer_file_path.c_str(), F_OK) != 0) {
+            std::cerr<<"Answer file "<<i<<" not present\n";
+            i++;
+            continue;
+        }
+        
+        int status = judge(binary, binary_path, input_file, input_file_path, answer_file_path);
+        
+        if(status == CHILD_PROCESS_ERROR) {
+            rm(binary_path);
+            return CHILD_PROCESS_ERROR;
+        }
+        std::cout<<"Test "<<i<<": ";
+        if(!status) {
+            std::cout<<"Passed\n";
+            ac++;
+        }
+        else {
+            std::cout<<"Wrong Answer\n";
+        }
+        i++; 
+    } 
+    return 0;
+}
+
+
+//run command
+int run(std::vector<std::string> &argv) { 
+    std::string lab = (std::string)"Lab" + argv[1];
+    std::string prob = (std::string)"prob_" + argv[2]; 
+    
+    
+    std::string tc_path = (std::string)"./" + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
+    
+    return runfn(tc_path, argv[3]);
+}
+
+
+//submit
+int submit(std::vector<std::string> &argv) { 
+    std::string lab = (std::string)"Lab" + argv[1];
+    std::string prob = (std::string)"prob_" + argv[2]; 
+    std::string tc_ex_path = (std::string)"./" + lab + (std::string)"/Problem/" + prob + (std::string)"/";
+    std::string tc_path = (std::string)"./" + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
+    
+    //first check if ex_tc passes
+    if(runfn(tc_ex_path, argv[3]) == WA) {
+        std::cout<<"Example Test Case Failed\n";
+        return WA;
+    } 
+    return runfn(tc_path, argv[3]);
+}
