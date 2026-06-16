@@ -1,4 +1,5 @@
 #include <iostream>
+#include <signal.h>
 #include <vector>
 #include "socket.hpp"
 #include "threadpool.hpp"
@@ -33,10 +34,10 @@ void new_connection(int cfd) {
     std::string cmd = argv[0];
  
     if(cmd == "run") {
-        run(argv);
+        run(cfd, argv);
     }
     else if(cmd == "submit") {
-        submit(argv);
+        submit(cfd, argv);
     }
     else {
         std::cout << "options are:\n";
@@ -50,6 +51,8 @@ void new_connection(int cfd) {
 
 
 int main() { 
+
+    signal(SIGPIPE, SIG_IGN);
 
     int sfd;
     if((sfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
