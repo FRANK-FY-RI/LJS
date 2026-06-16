@@ -7,6 +7,10 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <atomic>
+
+
+static std::atomic<int> box_cnt{0};
 
 
 //Isolate Runner

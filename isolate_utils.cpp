@@ -1,11 +1,9 @@
 #include "isolate_utils.hpp"
-#include <atomic>
 
 
 
 //Isolate run
 std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path) {
-    std::atomic<int> box_cnt{0}; 
     int curr_box = box_cnt.fetch_add(1) % 1000;
     std::string box_id = std::to_string(curr_box);
     std::string box_path = "/var/local/lib/isolate/" + box_id + "/box/";
