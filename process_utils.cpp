@@ -47,7 +47,7 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
 
 //Compile function
 std::pair<int, std::string> compile(int cfd, const char *code) {
-    const std::string binary = "sol";
+    const std::string binary = "sol" + std::to_string(cfd);
     char *compile_args[] = {
         (char*)"g++",
         (char*)"-std=c++23",
