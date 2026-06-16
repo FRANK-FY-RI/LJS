@@ -4,7 +4,7 @@
 
 
 //function to start a new process
-int new_process(const char* path, char *args[], const int input_fd, const int output_fd) {
+int new_process(const char* path, char *args[], const int input_fd, const int output_fd, const int error_fd) {
     int status;
     pid_t pid = fork();
     if(pid == -1) {
@@ -24,6 +24,12 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
             close(output_fd);
         }
 
+        //redirect error
+        if(error_fd != -1) {
+            dup2(error_fd, STDERR_FILENO);
+            close(error_fd);
+        }
+
         execv(path, args);
         exit(CHILD_PROCESS_ERROR);
     }
@@ -40,7 +46,7 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
 
 
 //Compile function
-std::pair<int, std::string> compile(const char *code) {
+std::pair<int, std::string> compile(int cfd, const char *code) {
     const std::string binary = "sol";
     char *compile_args[] = {
         (char*)"g++",
@@ -52,7 +58,7 @@ std::pair<int, std::string> compile(const char *code) {
         (char*)"-static-libstdc++",
         NULL
     };
-    int status = new_process("/usr/bin/g++", compile_args, -1, -1); 
+    int status = new_process("/usr/bin/g++", compile_args, -1, -1, cfd); 
     return {status, binary};
 }
 

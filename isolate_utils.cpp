@@ -4,7 +4,7 @@
 
 
 //Isolate run
-std::pair<int, std::string> isolate_run(const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path) {
+std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path) {
     std::atomic<int> box_cnt{0}; 
     int curr_box = box_cnt.fetch_add(1) % 1000;
     std::string box_id = std::to_string(curr_box);
@@ -23,7 +23,7 @@ std::pair<int, std::string> isolate_run(const std::string& binary_file, const st
     if(devnull == -1) {
         return {CHILD_PROCESS_ERROR, box_id};
     }
-    int status = new_process("/usr/local/bin/isolate", init_args, -1, devnull);
+    int status = new_process("/usr/local/bin/isolate", init_args, -1, devnull, cfd);
     close(devnull);
     // cout<<"Init status: "<<status<<endl;
     if(status) return {status, box_id};
@@ -36,10 +36,10 @@ std::pair<int, std::string> isolate_run(const std::string& binary_file, const st
         const_cast<char*>(box_path.c_str()),
         NULL
     };
-    status = new_process("/usr/bin/cp", bin_copy_args, -1, 2);
+    status = new_process("/usr/bin/cp", bin_copy_args, -1, -1, cfd);
     // cout<<"binary copy status: "<<status<<endl;
     if(status) {
-        isolate_cleanup(box_id);
+        isolate_cleanup(cfd, box_id);
         return {status, box_id};
     }
     
@@ -50,10 +50,10 @@ std::pair<int, std::string> isolate_run(const std::string& binary_file, const st
         const_cast<char*>(box_path.c_str()),
         NULL
     };
-    status = new_process("/usr/bin/cp", inp_copy_args, -1, 2);
+    status = new_process("/usr/bin/cp", inp_copy_args, -1, -1, cfd);
     // cout<<"input copy status: "<<status<<endl;
     if(status) {
-        isolate_cleanup(box_id);    
+        isolate_cleanup(cfd, box_id);    
         return {status, box_id}; 
     }
 
@@ -76,10 +76,10 @@ std::pair<int, std::string> isolate_run(const std::string& binary_file, const st
         const_cast<char*>(binary_file.c_str()),
         NULL
     };
-    status = new_process("/usr/local/bin/isolate", run_args, -1, 2);
+    status = new_process("/usr/local/bin/isolate", run_args, -1, -1, cfd);
     // cout<<"run status: "<<status<<endl;
     if(status) {
-        isolate_cleanup(box_id);    
+        isolate_cleanup(cfd, box_id);    
         return {status, box_id};
     }
 
@@ -92,17 +92,17 @@ std::pair<int, std::string> isolate_run(const std::string& binary_file, const st
         const_cast<char*>(output_file_dest.c_str()),
         NULL
     };
-    status = new_process("/usr/bin/cp", copy_out_args, -1, 2);
+    status = new_process("/usr/bin/cp", copy_out_args, -1, -1, cfd);
     // cout<<"output copy status: "<<status<<endl;
  
-    isolate_cleanup(box_id);
+    isolate_cleanup(cfd, box_id);
     return {status, box_id}; 
 }
 
 
 
 //Isolate cleanup
-int isolate_cleanup(std::string boxid) {
+int isolate_cleanup(const int cfd, std::string boxid) {
     std::string box_init = "--box-id=" + boxid;
     char *args[] = {
         (char*)"isolate",
@@ -110,7 +110,7 @@ int isolate_cleanup(std::string boxid) {
         const_cast<char*>(box_init.c_str()),
         NULL
     };
-    return new_process("/usr/local/bin/isolate", args, -1, 2);
+    return new_process("/usr/local/bin/isolate", args, -1, -1, cfd);
 }
 
 

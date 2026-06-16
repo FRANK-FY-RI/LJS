@@ -21,11 +21,11 @@
 
 
 //fucntion to start a new process
-int new_process(const char* path, char *args[], const int input_fd, const int output_fd);
+int new_process(const char* path, char *args[], const int input_fd, const int output_fd, const int error_fd);
 
 
 //function to compile
-std::pair<int, std::string> compile(const char *code);
+std::pair<int, std::string> compile(int cfd, const char *code);
 
 
 //delete a file

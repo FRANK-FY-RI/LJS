@@ -10,11 +10,11 @@
 
 
 //Isolate Runner
-std::pair<int, std::string> isolate_run(const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path);
+std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path);
 
 
 //Isolate Cleaner
-int isolate_cleanup(std::string boxid);
+int isolate_cleanup(const int cfd, std::string boxid);
 
 
 //Metadata Parser

@@ -37,7 +37,7 @@ void error_msg(int cfd, int status) {
 int judge(int cfd, const std::string& binary, const std::string& binary_path, const std::string& input_file, const std::string& input_file_path, const std::string& answer_file_path) { 
  
     //run
-    auto [status, boxid] = isolate_run(binary, binary_path, input_file, input_file_path);
+    auto [status, boxid] = isolate_run(cfd, binary, binary_path, input_file, input_file_path);
     if(status == CHILD_PROCESS_ERROR) {
         if(send_client(cfd, "Unable to spawn new process: isolate sandbox\n")==-1) return PROCESS_ERROR;
         return status;
@@ -67,7 +67,7 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
             const_cast<char*>(output_file_path.c_str()),
             NULL
         };
-        status = new_process("/usr/bin/cat", out_args, -1, -1);
+        status = new_process("/usr/bin/cat", out_args, -1, -1, cfd);
         if(status == CHILD_PROCESS_ERROR) {
             if(send_client(cfd, "Unable to spawn new process: cat\n")==-1) return PROCESS_ERROR;
         } 
@@ -92,7 +92,7 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
         if(send_client(cfd, "Unable to find /dev/null\n")==-1) return PROCESS_ERROR;
         return PROCESS_ERROR;
     }
-    status = new_process("/usr/bin/diff", diff_args, -1, devnull); 
+    status = new_process("/usr/bin/diff", diff_args, -1, devnull, cfd); 
     close(devnull);
     rm(output_file_path); 
     if(status == CHILD_PROCESS_ERROR) {
@@ -111,7 +111,7 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
 int runfn(int cfd, const std::string& tc_path, const std::string& code) {
     
     //compile
-    auto [compile_status, binary] = compile(code.c_str());
+    auto [compile_status, binary] = compile(cfd, code.c_str());
     if(compile_status == CHILD_PROCESS_ERROR) {
         if(send_client(cfd, "Unable to spawn new process: g++\n")==-1) return PROCESS_ERROR;
         return CHILD_PROCESS_ERROR;
