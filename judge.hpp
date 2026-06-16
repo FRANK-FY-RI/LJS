@@ -15,21 +15,21 @@ inline int send_client(int cfd, const std::string& msg) {
 
 
 //error message
-void error_msg(int status) {
+void error_msg(int cfd, int status) {
     if(status == CHILD_PROCESS_ERROR) {
-        std::cerr<<"Unable to run some program\n";
+        if(send_client(cfd, "Unble to run some program\n")==-1) return;
     }
     else if(status == TLE) {
-        std::cerr<<"Time Limit Exceeded\n";
+        if(send_client(cfd, "Time Limit Exceeded\n")==-1) return;
     }
     else if(status == MLE) {
-        std::cerr<<"Memory Limit Exceeded\n";
+        if(send_client(cfd, "Memory Limit Exceeded\n")==-1) return;
     }
     else if(status == RUNTIME_ERROR) {
-        std::cerr<<"Runtime Error\n";
+        if(send_client(cfd, "Runtime Error\n")==-1) return;
     }
     else if(status == PROCESS_ERROR) {
-        std::cerr<<"Process Error\n";
+        if(send_client(cfd, "Process Error\n")==-1) return;
     }
 }
 
@@ -53,7 +53,7 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
         if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
         return CHILD_PROCESS_ERROR;
     }
-    error_msg(status);
+    error_msg(cfd, status);
     if(status) return status;
 
     std::string output_file = (std::string)"out" + boxid + ".txt";
@@ -121,7 +121,7 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
         return compile_status;
     }
     std::string binary_path = (std::string)"./" + binary;
-    error_msg(compile_status);
+    error_msg(cfd, compile_status);
     if(compile_status) {
         rm(binary_path);
         return compile_status;
@@ -203,7 +203,7 @@ int submit(int cfd, std::vector<std::string> &argv) {
     
     //first check if ex_tc passes
     if(runfn(cfd, tc_ex_path, argv[3]) == WA) {
-        std::cout<<"Example Test Case Failed\n";
+        if(send_client(cfd, "Example Test Case Failed\n")==-1) return PROCESS_ERROR;
         return WA;
     } 
     return runfn(cfd, tc_path, argv[3]);
