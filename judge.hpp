@@ -1,3 +1,7 @@
+#ifndef __JUDGE_HPP
+#define __JUDGE_HPP
+
+
 #include "process_utils.hpp"
 #include "isolate_utils.hpp"
 #include "socket.hpp"
@@ -208,3 +212,6 @@ int submit(int cfd, std::vector<std::string> &argv) {
     } 
     return runfn(cfd, tc_path, argv[3]);
 }
+
+
+#endif
