@@ -1,9 +1,9 @@
 #include <iostream>
 #include <signal.h>
 #include <vector>
-#include "socket.hpp"
-#include "threadpool.hpp"
-#include "judge.hpp"
+#include "../include/socket.hpp"
+#include "../include/threadpool.hpp"
+#include "../include/judge.hpp"
 
 constexpr int n_threads = 11;
 
