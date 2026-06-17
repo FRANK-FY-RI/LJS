@@ -93,7 +93,7 @@ LJS submit <lab number> <problem number> <solution file.cpp>
 
 - Process Management: `fork()`, `execv()`, `waitpid()`, `dup2()`  
 
-- Sandboxing: IOI isolate
+- Sandboxing: [IOI isolate](https://github.com/ioi/isolate)
 
 - Platform: Linux
 
