@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
         std::cout << "       submit\n";
         std::cout << "Examples:\n";
         std::cout << "  LJS run 1 1 prob_1.cpp\n";
+        return 1;
     }
     
     if(!isAlphaNumeric(argv[2]) || !isAlphaNumeric(argv[3])) {
