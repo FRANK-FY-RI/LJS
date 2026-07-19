@@ -28,33 +28,25 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
     if(status) return {status, box_id};
 
     //Populate
-        //binary file
-    char *bin_copy_args[] = {
-        (char*)"cp",
-        const_cast<char*>(binary_file_path.c_str()),
-        const_cast<char*>(box_path.c_str()),
-        NULL
-    };
-    status = new_process("/usr/bin/cp", bin_copy_args, -1, -1, cfd);
-    // cout<<"binary copy status: "<<status<<endl;
-    if(status) {
+    namespace fs = std::filesystem;
+    try {
+        fs::copy_file(
+            binary_file_path,
+            fs::path(box_path) / fs::path(binary_file_path).filename(),
+            fs::copy_options::overwrite_existing
+        );
+
+        fs::copy_file(
+            input_file_path,
+            fs::path(box_path) / fs::path(input_file_path).filename(),
+            fs::copy_options::overwrite_existing
+        );
+    }
+    catch (const fs::filesystem_error&) {
         isolate_cleanup(cfd, box_id);
-        return {status, box_id};
+        return {PROCESS_ERROR, box_id};
     }
-    
-        //input file 
-    char *inp_copy_args[] = {
-        (char*)"cp",
-        const_cast<char*>(input_file_path.c_str()),
-        const_cast<char*>(box_path.c_str()),
-        NULL
-    };
-    status = new_process("/usr/bin/cp", inp_copy_args, -1, -1, cfd);
-    // cout<<"input copy status: "<<status<<endl;
-    if(status) {
-        isolate_cleanup(cfd, box_id);    
-        return {status, box_id}; 
-    }
+ 
 
     //run
     std::string output_file = (std::string)"out" + box_id + ".txt";
