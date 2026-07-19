@@ -67,27 +67,7 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
 
     std::string output_file = (std::string)"out" + boxid + ".txt";
     std::string output_file_path = (std::string)"/tmp/" + output_file;
-
-    //No answer to check from
-    if(answer_file_path.empty()) {
-        //show output file
-        char *out_args[] = {
-            (char*)"cat",
-            const_cast<char*>(output_file_path.c_str()),
-            NULL
-        };
-        status = new_process("/usr/bin/cat", out_args, -1, -1, cfd);
-        if(status == CHILD_PROCESS_ERROR) {
-            if(send_client(cfd, "Unable to spawn new process: cat\n")==-1) return PROCESS_ERROR;
-        } 
-        else if(status) {
-            if(send_client(cfd, "Output file not present\n")==-1) return PROCESS_ERROR;
-        }
-
-        //delete redundant files
-        rm(output_file_path);  
-        return status; 
-    }
+ 
 
     //check the output and answer 
     char *diff_args[] = {
@@ -130,8 +110,8 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
         return compile_status;
     }
     std::string binary_path = (std::string)"./" + binary;
-    error_msg(cfd, compile_status);
     if(compile_status) {
+        send_client(cfd, "Compilation error\n");
         rm(binary_path);
         return compile_status;
     }          
