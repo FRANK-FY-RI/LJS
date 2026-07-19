@@ -63,3 +63,22 @@ std::pair<int, std::string> compile(int cfd, const char *code) {
 }
 
 
+//Compare files
+int diff(const std::string& file1_path, const std::string& file2_path) {
+    std::ifstream file1(file1_path), file2(file2_path);
+    auto next_graph = [](std::ifstream& in) {
+        char c;
+        while(in.get(c)) {
+            if(std::isgraph(c)) return static_cast<int>(c);
+        }
+        return EOF;
+    };
+    while(true) {
+        int c1 = next_graph(file1);
+        int c2 = next_graph(file2);
+        if(c1==EOF && c2==EOF) break;
+        if(c1==EOF || c2==EOF) return 1;
+        if(c1 != c2) return 1;
+    }
+    return 0;
+}

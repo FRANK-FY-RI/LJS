@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <utility>
 #include <string>
+#include <fstream>
 
 
 
@@ -35,6 +36,10 @@ std::pair<int, std::string> compile(int cfd, const char *code);
 inline int rm(const std::string& path) {
     return unlink(path.c_str()); 
 }
+
+
+//file compare
+int diff(const std::string& file1_path, const std::string& file2_path);
 
 
 #endif

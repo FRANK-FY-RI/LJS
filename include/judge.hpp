@@ -65,29 +65,13 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
     error_msg(cfd, status);
     if(status) return status;
 
-    std::string output_file = (std::string)"out" + boxid + ".txt";
-    std::string output_file_path = (std::string)"/tmp/" + output_file;
+    const std::string output_file = (std::string)"out" + boxid + ".txt";
+    const std::string output_file_path = (std::string)"/tmp/" + output_file;
  
 
-    //check the output and answer 
-    char *diff_args[] = {
-        (char*)"diff",
-        const_cast<char*>(answer_file_path.c_str()),
-        const_cast<char*>(output_file_path.c_str()),
-        NULL
-    };
-    const int devnull = open("/dev/null", O_WRONLY);
-    if(devnull == -1) {
-        if(send_client(cfd, "Unable to find /dev/null\n")==-1) return PROCESS_ERROR;
-        return PROCESS_ERROR;
-    }
-    status = new_process("/usr/bin/diff", diff_args, -1, devnull, cfd); 
-    close(devnull);
+    //check the output and answer  
+    status = diff(answer_file_path, output_file_path); 
     rm(output_file_path); 
-    if(status == CHILD_PROCESS_ERROR) {
-        if(send_client(cfd, "Unable to spawn new process: diff\n")==-1) return PROCESS_ERROR;
-        return CHILD_PROCESS_ERROR;
-    }
     if(!status) {
         return AC;
     }
