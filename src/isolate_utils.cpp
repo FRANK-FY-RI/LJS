@@ -76,12 +76,8 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
         const_cast<char*>(binary_file.c_str()),
         NULL
     };
-    status = new_process("/usr/local/bin/isolate", run_args, -1, -1, cfd);
-    if(status == 1) {
-        isolate_cleanup(cfd, box_id);
-        return {256, box_id}; //arbitrary exit status because metadata verdict will be checked later anyways
-    }
-    else if(status>1) {
+    status = new_process("/usr/local/bin/isolate", run_args, -1, -1, cfd); 
+    if(status) {
         isolate_cleanup(cfd, box_id);    
         return {status, box_id};
     }

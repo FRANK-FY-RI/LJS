@@ -10,12 +10,12 @@
 
 
 #define AC 0
-#define WA 6
-#define PROCESS_ERROR 1
+#define WA 1
 #define RUNTIME_ERROR 2
 #define TLE 3
 #define MLE 4
 #define CHILD_PROCESS_ERROR 5
+#define PROCESS_ERROR 6
 
 
 inline std::string exitsig;

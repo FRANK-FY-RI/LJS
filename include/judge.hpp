@@ -50,7 +50,7 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
     if(status == PROCESS_ERROR) {
         if(send_client(cfd, "Error running process: isolate sandbox\n")==-1) return PROCESS_ERROR;
         return status;
-    }
+    } 
 
     //check the metadata verdict
     std::string metadata_file = (std::string)"metadata" + boxid + (std::string)".meta";
