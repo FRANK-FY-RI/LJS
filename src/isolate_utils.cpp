@@ -77,14 +77,16 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
     //copy output file
     std::string output_file_source = box_path + output_file;
     std::string output_file_dest = (std::string)"/tmp/" + output_file;
-    char *copy_out_args[] = {
-        (char*)"cp",
-        const_cast<char*>(output_file_source.c_str()),
-        const_cast<char*>(output_file_dest.c_str()),
-        NULL
-    };
-    status = new_process("/usr/bin/cp", copy_out_args, -1, -1, cfd);
-    // cout<<"output copy status: "<<status<<endl;
+    try {
+        fs::copy_file(
+            output_file_source, output_file_dest,
+            fs::copy_options::overwrite_existing
+        );
+    }
+    catch (const fs::filesystem_error& e) {
+        isolate_cleanup(cfd, box_id);
+        return {PROCESS_ERROR, box_id};
+    } 
  
     isolate_cleanup(cfd, box_id);
     return {status, box_id}; 
