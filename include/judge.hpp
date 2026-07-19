@@ -30,7 +30,8 @@ void error_msg(int cfd, int status) {
         if(send_client(cfd, "Memory Limit Exceeded\n")==-1) return;
     }
     else if(status == RUNTIME_ERROR) {
-        if(send_client(cfd, "Runtime Error\n")==-1) return;
+        std::string msg = strsignal(std::stoi(exitsig)) + static_cast<std::string>("\n");
+        if(send_client(cfd, msg)==-1) return;
     }
     else if(status == PROCESS_ERROR) {
         if(send_client(cfd, "Process Error\n")==-1) return;

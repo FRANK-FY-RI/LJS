@@ -18,6 +18,9 @@
 #define CHILD_PROCESS_ERROR 5
 
 
+inline std::string exitsig;
+
+
 
 
 //fucntion to start a new process
@@ -32,7 +35,6 @@ std::pair<int, std::string> compile(int cfd, const char *code);
 inline int rm(const std::string& path) {
     return unlink(path.c_str()); 
 }
-
 
 
 #endif
