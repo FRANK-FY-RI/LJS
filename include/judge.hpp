@@ -72,10 +72,12 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
     //check the output and answer  
     status = diff(answer_file_path, output_file_path); 
     rm(output_file_path); 
-    if(!status) {
-        return AC;
-    }
-    return WA; 
+    if(status == PROCESS_ERROR) {
+        send_client(cfd, "Unable to open output files\n");
+        return PROCESS_ERROR;
+    } 
+    else if(status == 0) return AC;
+    return WA;
 }
 
 

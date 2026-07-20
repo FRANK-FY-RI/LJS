@@ -66,6 +66,7 @@ std::pair<int, std::string> compile(int cfd, const char *code) {
 //Compare files
 int diff(const std::string& file1_path, const std::string& file2_path) {
     std::ifstream file1(file1_path), file2(file2_path);
+    if(!file1 || !file2) return PROCESS_ERROR;
     auto next_graph = [](std::ifstream& in) {
         char c;
         while(in.get(c)) {
