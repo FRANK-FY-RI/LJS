@@ -66,20 +66,23 @@ std::pair<int, std::string> compile(int cfd, const char *code) {
 //Compare files
 int diff(const std::string& file1_path, const std::string& file2_path) {
     std::ifstream file1(file1_path), file2(file2_path);
-    if(!file1 || !file2) return PROCESS_ERROR;
-    auto next_graph = [](std::ifstream& in) {
-        char c;
-        while(in.get(c)) {
-            if(std::isgraph(c)) return static_cast<int>(c);
+    std::string s1, s2, temp;
+    auto rtrim = [](std::string& s) {
+        int n = s.size();
+        for(int i = n-1; i>=0; i--) {
+            if(std::isgraph(s[i])) break;
+            s.pop_back();
         }
-        return EOF;
     };
-    while(true) {
-        int c1 = next_graph(file1);
-        int c2 = next_graph(file2);
-        if(c1==EOF && c2==EOF) break;
-        if(c1==EOF || c2==EOF) return 1;
-        if(c1 != c2) return 1;
-    }
-    return 0;
+    while(std::getline(file1, temp)) {
+        s1 += temp;
+        s1 += '\n';
+    } 
+    while(std::getline(file2, temp)) {
+        s2 += temp;
+        s2 += '\n';
+    } 
+    rtrim(s1);
+    rtrim(s2);
+    return !(s1==s2);
 }
