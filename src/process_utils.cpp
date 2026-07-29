@@ -71,15 +71,15 @@ int diff(const std::string& file1_path, const std::string& file2_path) {
     auto rtrim = [](std::string& s) {
         while(!s.empty() && !std::isgraph(s.back())) s.pop_back();
     };
-    while(std::getline(file1, temp)) {
-        s1 += temp;
-        s1 += '\n';
+    while(true) {
+        bool ch1 = static_cast<bool>(std::getline(file1, s1));
+        bool ch2 = static_cast<bool>(std::getline(file2, s2));
+        if(ch1 != ch2) return 1;
+        else if(!ch1) return 0;
+
+        rtrim(s1);
+        rtrim(s2);
+        if(s1 != s2) return 1;
     } 
-    while(std::getline(file2, temp)) {
-        s2 += temp;
-        s2 += '\n';
-    } 
-    rtrim(s1);
-    rtrim(s2);
-    return !(s1==s2);
+    return 0;
 }
