@@ -21,21 +21,25 @@ inline int send_client(int cfd, const std::string& msg) {
 //error message
 void error_msg(int cfd, int status) {
     if(status == CHILD_PROCESS_ERROR) {
-        if(send_client(cfd, "Unble to run some program\n\n")==-1) return;
+        send_client(cfd, "Unble to run some program\n\n");
     }
     else if(status == TLE) {
-        if(send_client(cfd, "Time Limit Exceeded\n\n")==-1) return;
+        send_client(cfd, "Time Limit Exceeded\n\n");
     }
     else if(status == MLE) {
-        if(send_client(cfd, "Memory Limit Exceeded\n\n")==-1) return;
+        send_client(cfd, "Memory Limit Exceeded\n\n");
     }
     else if(status == RUNTIME_ERROR) {
         std::string msg = strsignal(std::stoi(exitsig)) + static_cast<std::string>("\n\n");
-        if(send_client(cfd, msg)==-1) return;
+        send_client(cfd, msg);
     }
     else if(status == PROCESS_ERROR) {
-        if(send_client(cfd, "Process Error\n\n")==-1) return;
+        send_client(cfd, "Process Error\n\n");
     }
+    else if(status == WA) {
+        send_client(cfd, "Wrong answer\n\n");
+    }
+    else send_client(cfd, "Passed\n\n");
 }
 
 //judge function
@@ -72,7 +76,7 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
     status = diff(answer_file_path, output_file_path); 
     rm(output_file_path); 
     if(status == PROCESS_ERROR) {
-        send_client(cfd, "Unable to open output files\n");
+        send_client(cfd, "Unable to open output or answer files\n");
         return PROCESS_ERROR;
     } 
     else if(status == 0) return AC;
@@ -143,13 +147,8 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
         std::string msg = static_cast<std::string>("Test ") + 
         std::to_string(i) + static_cast<std::string>(": ");
         if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
-        if(!status) {
-            if(send_client(cfd, "Passed\n\n")==-1) return PROCESS_ERROR;
-            ac++;
-        }
-        else {
-            error_msg(cfd, status);
-        }
+        if(!status) ac++;
+        error_msg(cfd, status); 
         i++; 
     } 
     return 0;
