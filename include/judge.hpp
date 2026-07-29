@@ -21,20 +21,20 @@ inline int send_client(int cfd, const std::string& msg) {
 //error message
 void error_msg(int cfd, int status) {
     if(status == CHILD_PROCESS_ERROR) {
-        if(send_client(cfd, "Unble to run some program\n")==-1) return;
+        if(send_client(cfd, "Unble to run some program\n\n")==-1) return;
     }
     else if(status == TLE) {
-        if(send_client(cfd, "Time Limit Exceeded\n")==-1) return;
+        if(send_client(cfd, "Time Limit Exceeded\n\n")==-1) return;
     }
     else if(status == MLE) {
-        if(send_client(cfd, "Memory Limit Exceeded\n")==-1) return;
+        if(send_client(cfd, "Memory Limit Exceeded\n\n")==-1) return;
     }
     else if(status == RUNTIME_ERROR) {
-        std::string msg = strsignal(std::stoi(exitsig)) + static_cast<std::string>("\n");
+        std::string msg = strsignal(std::stoi(exitsig)) + static_cast<std::string>("\n\n");
         if(send_client(cfd, msg)==-1) return;
     }
     else if(status == PROCESS_ERROR) {
-        if(send_client(cfd, "Process Error\n")==-1) return;
+        if(send_client(cfd, "Process Error\n\n")==-1) return;
     }
 }
 
@@ -62,7 +62,6 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
         if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
         return CHILD_PROCESS_ERROR;
     }
-    error_msg(cfd, status);
     if(status) return status;
 
     const std::string output_file = (std::string)"out" + boxid + ".txt";
@@ -145,11 +144,11 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
         std::to_string(i) + static_cast<std::string>(": ");
         if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
         if(!status) {
-            if(send_client(cfd, "Passed\n")==-1) return PROCESS_ERROR;
+            if(send_client(cfd, "Passed\n\n")==-1) return PROCESS_ERROR;
             ac++;
         }
         else {
-            if(send_client(cfd, "Wrong Answer\n")==-1) return PROCESS_ERROR;
+            error_msg(cfd, status);
         }
         i++; 
     } 

@@ -111,6 +111,7 @@ int isolate_cleanup(const int cfd, std::string boxid) {
 
 //metadata verdict
 int metadata_verdict(const std::string& metadata_file_path) {
+    exitsig.clear();
     std::ifstream file(metadata_file_path); 
     if(!file.is_open()) {
         return CHILD_PROCESS_ERROR;
@@ -122,9 +123,6 @@ int metadata_verdict(const std::string& metadata_file_path) {
         else if(key == "exitsig") exitsig = value;
     }
     if(status == "TO") return TLE; 
-    if(!exitsig.empty()) {
-        return RUNTIME_ERROR;
-        exitsig.clear();
-    }
+    if(!exitsig.empty()) return RUNTIME_ERROR;
     return 0;
 }
