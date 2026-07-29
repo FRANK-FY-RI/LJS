@@ -122,6 +122,9 @@ int metadata_verdict(const std::string& metadata_file_path) {
         else if(key == "exitsig") exitsig = value;
     }
     if(status == "TO") return TLE; 
-    if(!exitsig.empty()) return RUNTIME_ERROR;
+    if(!exitsig.empty()) {
+        return RUNTIME_ERROR;
+        exitsig.clear();
+    }
     return 0;
 }

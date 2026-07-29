@@ -19,7 +19,7 @@
 #define PROCESS_ERROR 6
 
 
-inline std::string exitsig;
+inline thread_local std::string exitsig;
 
 
 
