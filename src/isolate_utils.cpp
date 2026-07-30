@@ -117,12 +117,18 @@ int metadata_verdict(const std::string& metadata_file_path) {
         return CHILD_PROCESS_ERROR;
     }
     std::string key, value, status;
+    int exitcode = 0;
     while (std::getline(file, key, ':') && std::getline(file, value)) {
         if(key == "cg-oom-killed") return MLE;
         else if(key == "status") status = value;
         else if(key == "exitsig") exitsig = value;
+        else if(key == "exitcode") exitcode = std::stoi(value);
     }
-    if(status == "TO") return TLE; 
+    if(exitcode) {
+        exitsig = std::to_string(-exitcode);
+        return RUNTIME_ERROR;
+    }
     if(!exitsig.empty()) return RUNTIME_ERROR;
+    if(status == "TO") return TLE; 
     return 0;
 }
