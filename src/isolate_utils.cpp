@@ -54,13 +54,15 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
     std::string metadata_init = (std::string)"--meta=" + metadata_file_path;
     std::string stdin_arg = (std::string)"--stdin=" + input_file;
     std::string stdout_arg = (std::string)"--stdout=" + output_file;
+    std::string time_arg = (std::string)"--time=" + Time_Limit;
+    std::string memory_arg = (std::string)"--cg-mem=" + Memory_Limit;
     std::vector<char*> run_args = {
         (char*)"isolate",
         const_cast<char*>(box_id_init_arg.c_str()),
         (char*)"--run",
-        (char*)((static_cast<std::string>("--time=") + Time_Limit).c_str()),
+        const_cast<char*>(time_arg.c_str()),
         (char*)"--cg",
-        (char*)((static_cast<std::string>("--cg-mem=") + Memory_Limit).c_str()),
+        const_cast<char*>(memory_arg.c_str()),
         const_cast<char*>(metadata_init.c_str()),
         const_cast<char*>(stdin_arg.c_str()),
         const_cast<char*>(stdout_arg.c_str()),
