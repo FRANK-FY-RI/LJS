@@ -8,6 +8,7 @@
 #include <fstream>
 #include <filesystem>
 #include <atomic>
+#include <vector>
 
 
 static std::atomic<int> box_cnt{0};

@@ -48,7 +48,7 @@ int new_process(const char* path, char *args[], const int input_fd, const int ou
 //Compile function
 std::pair<int, std::string> compile(int cfd, const char *code) {
     const std::string binary = "sol" + std::to_string(cfd);
-    char *compile_args[] = {
+    std::vector<char*> compile_args = {
         (char*)"g++",
         (char*)"-std=c++23",
         (char*)"-Wall",
@@ -58,7 +58,7 @@ std::pair<int, std::string> compile(int cfd, const char *code) {
         (char*)"-static-libstdc++",
         NULL
     };
-    int status = new_process("/usr/bin/g++", compile_args, -1, -1, cfd); 
+    int status = new_process("/usr/bin/g++", compile_args.data(), -1, -1, cfd); 
     return {status, binary};
 }
 

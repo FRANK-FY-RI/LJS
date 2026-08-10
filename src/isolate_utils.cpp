@@ -10,7 +10,7 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
     std::string box_id_init_arg = (std::string)"--box-id=" + box_id;
 
     //Initialize the box
-    char *init_args[] = {
+    std::vector<char*> init_args = {
         (char*)"isolate",
         (char*)"--init",
         (char*)"--cg",
@@ -22,7 +22,7 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
     if(devnull == -1) {
         return {CHILD_PROCESS_ERROR, box_id};
     }
-    int status = new_process("/usr/local/bin/isolate", init_args, -1, devnull, cfd);
+    int status = new_process("/usr/local/bin/isolate", init_args.data(), -1, devnull, cfd);
     close(devnull);
     // cout<<"Init status: "<<status<<endl;
     if(status) return {status, box_id};
@@ -54,7 +54,7 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
     std::string metadata_init = (std::string)"--meta=" + metadata_file_path;
     std::string stdin_arg = (std::string)"--stdin=" + input_file;
     std::string stdout_arg = (std::string)"--stdout=" + output_file;
-    char *run_args[] = {
+    std::vector<char*> run_args = {
         (char*)"isolate",
         const_cast<char*>(box_id_init_arg.c_str()),
         (char*)"--run",
@@ -68,7 +68,7 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
         const_cast<char*>(binary_file.c_str()),
         NULL
     };
-    status = new_process("/usr/local/bin/isolate", run_args, -1, -1, cfd); 
+    status = new_process("/usr/local/bin/isolate", run_args.data(), -1, -1, cfd); 
     if(status) {
         isolate_cleanup(cfd, box_id);    
         return {status, box_id};
@@ -97,14 +97,14 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
 //Isolate cleanup
 int isolate_cleanup(const int cfd, std::string boxid) {
     std::string box_init = "--box-id=" + boxid;
-    char *args[] = {
+    std::vector<char*> args = {
         (char*)"isolate",
         (char*)"--cleanup",
         (char*)"--cg",
         const_cast<char*>(box_init.c_str()),
         NULL
     };
-    return new_process("/usr/local/bin/isolate", args, -1, -1, cfd);
+    return new_process("/usr/local/bin/isolate", args.data(), -1, -1, cfd);
 }
 
 
