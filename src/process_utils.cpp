@@ -50,14 +50,14 @@ std::pair<int, std::string> compile(int cfd, const char *code) {
     const std::string binary = "sol" + std::to_string(cfd);
     std::vector<char*> compile_args = {
         (char*)"g++",
-        (char*)"-std=c++23",
-        (char*)"-Wall",
         const_cast<char*>(code),
         (char*)("-o"),
         const_cast<char*>(binary.c_str()),
-        (char*)"-static-libstdc++",
-        NULL
     };
+    for(const auto arg:compiler_args) {
+        compile_args.push_back(arg);
+    }
+    compile_args.push_back(NULL);
     int status = new_process("/usr/bin/g++", compile_args.data(), -1, -1, cfd); 
     return {status, binary};
 }

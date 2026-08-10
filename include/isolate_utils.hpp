@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <atomic>
 #include <vector>
+#include "config.hpp"
 
 
 static std::atomic<int> box_cnt{0};
