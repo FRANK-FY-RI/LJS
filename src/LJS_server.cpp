@@ -5,8 +5,6 @@
 #include "../include/threadpool.hpp"
 #include "../include/judge.hpp"
 
-constexpr int n_threads = 11;
-
 void new_connection(int cfd) {
     char buf[MAXDATASIZE+1];
     int bytes_read;
@@ -84,7 +82,7 @@ int main() {
         return 1;
     }
 
-    threadpool pool(n_threads);
+    threadpool pool(max_threads);
 
     std::cout<<"waiting for connections...\n";
 

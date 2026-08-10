@@ -63,19 +63,19 @@ int judge(int cfd, const std::string& binary, const std::string& binary_path, co
     } 
 
     //check the metadata verdict
-    std::string metadata_file = (std::string)"metadata" + boxid + (std::string)".meta";
-    std::string metadata_file_path = (std::string)"/tmp/" + metadata_file;
+    std::string metadata_file = boxid + (std::string)".meta";
+    std::string metadata_file_path = temp_dir + metadata_file;
     status = metadata_verdict(metadata_file_path);
     rm(metadata_file_path);
     if(status == CHILD_PROCESS_ERROR) {
-        std::string msg = static_cast<std::string>("Error opening file") + metadata_file_path;
+        std::string msg = static_cast<std::string>("Error opening metadata file ") + (std::string)"\n";
         if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
         return CHILD_PROCESS_ERROR;
     }
     if(status) return status;
 
     const std::string output_file = (std::string)"out" + boxid + ".txt";
-    const std::string output_file_path = (std::string)"/tmp/" + output_file;
+    const std::string output_file_path = temp_dir + output_file;
  
 
     //check the output and answer  
@@ -145,11 +145,7 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
         }
         
         int status = judge(cfd, binary, binary_path, input_file, input_file_path, answer_file_path);
-        
-        if(status == CHILD_PROCESS_ERROR) {
-            rm(binary_path);
-            return CHILD_PROCESS_ERROR;
-        }
+         
         std::string msg = static_cast<std::string>("Test ") + 
         std::to_string(i) + static_cast<std::string>(": ");
         if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
@@ -181,7 +177,7 @@ int submit(int cfd, std::vector<std::string> &argv) {
     std::string tc_path = (std::string)"./" + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
     
     //first check if ex_tc passes
-    if(runfn(cfd, tc_ex_path, argv[3]) == WA) {
+    if(runfn(cfd, tc_ex_path, argv[3]) != AC) {
         if(send_client(cfd, "Example Test Case Failed\n")==-1) return PROCESS_ERROR;
         return WA;
     } 

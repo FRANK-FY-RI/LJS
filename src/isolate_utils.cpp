@@ -50,7 +50,7 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
 
     //run
     std::string output_file = (std::string)"out" + box_id + ".txt";
-    std::string metadata_file_path = (std::string)"/tmp/metadata" + box_id + ".meta";
+    std::string metadata_file_path = temp_dir + box_id + (std::string)".meta";
     std::string metadata_init = (std::string)"--meta=" + metadata_file_path;
     std::string stdin_arg = (std::string)"--stdin=" + input_file;
     std::string stdout_arg = (std::string)"--stdout=" + output_file;
@@ -76,7 +76,7 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
 
     //copy output file
     std::string output_file_source = box_path + output_file;
-    std::string output_file_dest = (std::string)"/tmp/" + output_file;
+    std::string output_file_dest = temp_dir + output_file;
     try {
         fs::copy_file(
             output_file_source, output_file_dest,
