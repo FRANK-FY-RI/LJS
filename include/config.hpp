@@ -32,6 +32,9 @@ const std::string temp_dir = "/tmp/";
 // Problem Directory
 const std::string prob_dir = "/home/frank/sb/";
 
+// Maximum length of path
+constexpr size_t MAX_PATH = 10000;
+
 
 // Common process limits
 constexpr rlim_t COMMON_CPU_LIMIT = 60;

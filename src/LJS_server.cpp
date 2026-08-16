@@ -5,7 +5,7 @@
 #include "../include/threadpool.hpp"
 #include "../include/judge.hpp"
 
-void new_connection(int cfd) {
+void new_connection(int cfd, const std::string& client_cwd) {
     char buf[MAXDATASIZE+1];
     int bytes_read;
     std::string msg;
@@ -32,10 +32,10 @@ void new_connection(int cfd) {
     std::string cmd = argv[0];
  
     if(cmd == "run") {
-        run(cfd, argv);
+        run(cfd, argv, client_cwd);
     }
     else if(cmd == "submit") {
-        submit(cfd, argv);
+        submit(cfd, argv, client_cwd);
     }
     else {
         std::cout << "options are:\n";
@@ -93,9 +93,51 @@ int main() {
             continue;
         }
 
-        std::cout<<"connection established\n";
+        struct ucred cred;
+        socklen_t len = sizeof(cred);
 
-        pool.submit([cfd](){new_connection(cfd);});
+        if (getsockopt(
+            cfd,
+            SOL_SOCKET,
+            SO_PEERCRED,
+            &cred,
+            &len
+        ) == -1) {
+
+            perror("getsockopt");
+            close(cfd);
+            continue;
+        }
+
+        pid_t client_pid = cred.pid;
+        uid_t client_uid = cred.uid;
+
+        std::cout<<"connection established with pid " <<client_pid<<'\n';
+
+        char cwd[MAX_PATH];
+
+        std::string proc_cwd =
+            "/proc/" +
+            std::to_string(client_pid) +
+            "/cwd";
+
+        ssize_t pathlen = readlink(
+            proc_cwd.c_str(),
+            cwd,
+            sizeof(cwd) - 1
+        );
+
+        if(pathlen == -1) {
+            perror("readlink");
+            close(cfd);
+            continue;
+        }
+
+        cwd[pathlen] = '\0';
+
+        std::string client_cwd(cwd);
+
+        pool.submit([cfd, client_cwd](){new_connection(cfd, client_cwd);});
     } 
 
     return 0;

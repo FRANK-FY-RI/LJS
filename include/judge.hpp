@@ -158,30 +158,29 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
 
 
 //run command
-int run(int cfd, std::vector<std::string> &argv) { 
+int run(int cfd, std::vector<std::string> &argv, const std::string& client_cwd) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
-    
-    
     std::string tc_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
-    
-    return runfn(cfd, tc_path, argv[3]);
+    std::string code_path = client_cwd + (std::string)"/" + (std::string)argv[3]; 
+    return runfn(cfd, tc_path, code_path);
 }
 
 
 //submit
-int submit(int cfd, std::vector<std::string> &argv) { 
+int submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_ex_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/";
     std::string tc_path = prob_dir + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
+    std::string code_path = client_cwd + (std::string)"/" + argv[3];
     
     //first check if ex_tc passes
-    if(runfn(cfd, tc_ex_path, argv[3]) != AC) {
+    if(runfn(cfd, tc_ex_path, code_path) != AC) {
         if(send_client(cfd, "Example Test Case Failed\n")==-1) return PROCESS_ERROR;
         return WA;
     } 
-    return runfn(cfd, tc_path, argv[3]);
+    return runfn(cfd, tc_path, code_path);
 }
 
 
