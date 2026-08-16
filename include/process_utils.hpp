@@ -24,10 +24,66 @@
 inline thread_local std::string exitsig;
 
 
+// Process Limits
+struct ProcessLimits {
+    rlim_t cpu;
+    rlim_t memory;
+    rlim_t file_size;
+    rlim_t no_of_file;
+    std::chrono::seconds wall_timeout;
+};
+
+// Common Process Limits
+constexpr ProcessLimits COMMON_LIMITS{
+    COMMON_CPU_LIMIT,
+    COMMON_MEMORY_LIMIT,
+    COMMON_FILE_SIZE_LIMIT,
+    COMMON_NO_OF_FILE_LIMIT,
+    COMMON_WALL_TIMEOUT_SEC
+};
+
+// Compiler specific Limits
+constexpr ProcessLimits COMPILE_LIMITS{
+    COMPILE_CPU_LIMIT,
+    COMPILE_MEMORY_LIMIT,
+    COMPILE_FILE_SIZE_LIMIT,
+    COMMON_NO_OF_FILE_LIMIT,
+    COMPILE_WALL_TIMEOUT_SEC
+};
+
+
+
+// Helper to set limits
+static void set_limits(const ProcessLimits& limits) {
+    struct rlimit lim{};
+
+    lim.rlim_cur = lim.rlim_max = limits.cpu;
+    setrlimit(RLIMIT_CPU, &lim);
+
+    lim.rlim_cur = lim.rlim_max = limits.memory;
+    setrlimit(RLIMIT_AS, &lim);
+
+    lim.rlim_cur = lim.rlim_max = limits.file_size;
+    setrlimit(RLIMIT_FSIZE, &lim);
+
+    lim.rlim_cur = lim.rlim_max = limits.no_of_file;
+    setrlimit(RLIMIT_NOFILE, &lim);
+
+    // Don't generate core dumps.
+    lim.rlim_cur = lim.rlim_max = 0;
+    setrlimit(RLIMIT_CORE, &lim);
+}
 
 
 //fucntion to start a new process
-int new_process(const char* path, char *args[], const int input_fd, const int output_fd, const int error_fd);
+int new_process(
+    const char* path,
+    char *args[],
+    const int input_fd,
+    const int output_fd,
+    const int error_fd,
+    const ProcessLimits& limits = COMMON_LIMITS
+);
 
 
 //function to compile

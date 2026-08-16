@@ -5,3 +5,4 @@ client
 test
 a.out
 fact*
+compiler_bomb.cpp

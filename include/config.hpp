@@ -3,6 +3,8 @@
 
 
 #include <vector>
+#include <sys/resource.h>
+#include <chrono>
 #include <string>
 
 //Time Limit for program execution in seconds
@@ -26,5 +28,21 @@ constexpr int max_threads = 11;
 
 //Address for keeping temporary files
 const std::string temp_dir = "/tmp/";
+
+
+// Common process limits
+constexpr rlim_t COMMON_CPU_LIMIT = 60;
+constexpr rlim_t COMMON_MEMORY_LIMIT = 2ULL * 1024 * 1024 * 1024; // 2 GB
+constexpr rlim_t COMMON_FILE_SIZE_LIMIT = 512ULL * 1024 * 1024;   // 512 MB
+constexpr rlim_t COMMON_NO_OF_FILE_LIMIT = 128;
+
+constexpr std::chrono::seconds COMMON_WALL_TIMEOUT_SEC{15};
+
+// Compiler-specific
+constexpr rlim_t COMPILE_CPU_LIMIT = 10;
+constexpr rlim_t COMPILE_MEMORY_LIMIT = 1ULL * 1024 * 1024 * 1024;
+constexpr rlim_t COMPILE_FILE_SIZE_LIMIT = 16ULL * 1024 * 1024;
+constexpr std::chrono::seconds COMPILE_WALL_TIMEOUT_SEC{10};
+
 
 #endif

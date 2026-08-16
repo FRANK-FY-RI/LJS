@@ -4,43 +4,78 @@
 
 
 //function to start a new process
-int new_process(const char* path, char *args[], const int input_fd, const int output_fd, const int error_fd) {
+int new_process(
+    const char* path,
+    char *args[],
+    const int input_fd,
+    const int output_fd,
+    const int error_fd,
+    const ProcessLimits& limits
+) {
     int status;
+
     pid_t pid = fork();
+
     if(pid == -1) {
-        return CHILD_PROCESS_ERROR; 
+        return CHILD_PROCESS_ERROR;
     }
-    int ret_status;
+
     if(pid == 0) {
-        //redirect input
+
+        // Put child in its own process group so the parent
+        // can kill the whole process tree on timeout.
+        setpgid(0, 0);
+
+        // Apply resource limits before exec().
+        set_limits(limits);
+
+        // redirect input
         if(input_fd != -1) {
             dup2(input_fd, 0);
             close(input_fd);
         }
 
-        //redirect output
+        // redirect output
         if(output_fd != -1) {
             dup2(output_fd, 1);
             close(output_fd);
         }
 
-        //redirect error
+        // redirect error
         if(error_fd != -1) {
             dup2(error_fd, STDERR_FILENO);
             close(error_fd);
         }
 
         execv(path, args);
-        exit(CHILD_PROCESS_ERROR);
+        _exit(CHILD_PROCESS_ERROR);
     }
-    else {
-        waitpid(pid, &status, 0);
-        if(WIFEXITED(status)) {
-            ret_status = WEXITSTATUS(status);
+
+    /*
+    This line prevents data race for creating a new process group id
+    for the child process, otherwise the parent may also get killed 
+    due to timeout 
+    */
+    setpgid(pid, pid);
+
+    const auto start = std::chrono::steady_clock::now();
+
+    while(waitpid(pid, &status, WNOHANG) == 0) {
+
+        if(std::chrono::steady_clock::now() - start > limits.wall_timeout) {
+
+            kill(pid, SIGKILL);
+            waitpid(pid, &status, 0);
+
+            return PROCESS_ERROR;
         } 
-        else ret_status = CHILD_PROCESS_ERROR;
+    } 
+
+    if(WIFEXITED(status)) {
+        return WEXITSTATUS(status);
     }
-    return ret_status;
+
+    return CHILD_PROCESS_ERROR;
 }
 
 
@@ -58,7 +93,12 @@ std::pair<int, std::string> compile(int cfd, const char *code) {
         compile_args.push_back(arg);
     }
     compile_args.push_back(NULL);
-    int status = new_process("/usr/bin/g++", compile_args.data(), -1, -1, cfd); 
+    int status = new_process(
+        "/usr/bin/g++",
+        compile_args.data(),
+        -1, -1, cfd,
+        COMPILE_LIMITS
+    ); 
     return {status, binary};
 }
 
