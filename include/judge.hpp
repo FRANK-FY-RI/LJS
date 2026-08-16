@@ -104,7 +104,7 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
         if(send_client(cfd, "Compilation Error\n")==-1) return PROCESS_ERROR;
         return compile_status;
     }
-    std::string binary_path = (std::string)"./" + binary;
+    std::string binary_path = temp_dir + binary;
     if(compile_status) {
         send_client(cfd, "Compilation error\n");
         rm(binary_path);
@@ -163,7 +163,7 @@ int run(int cfd, std::vector<std::string> &argv) {
     std::string prob = (std::string)"prob_" + argv[2]; 
     
     
-    std::string tc_path = (std::string)"./" + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
+    std::string tc_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
     
     return runfn(cfd, tc_path, argv[3]);
 }
@@ -173,8 +173,8 @@ int run(int cfd, std::vector<std::string> &argv) {
 int submit(int cfd, std::vector<std::string> &argv) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
-    std::string tc_ex_path = (std::string)"./" + lab + (std::string)"/Problem/" + prob + (std::string)"/";
-    std::string tc_path = (std::string)"./" + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
+    std::string tc_ex_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/";
+    std::string tc_path = prob_dir + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
     
     //first check if ex_tc passes
     if(runfn(cfd, tc_ex_path, argv[3]) != AC) {

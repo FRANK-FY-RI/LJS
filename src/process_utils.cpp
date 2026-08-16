@@ -83,11 +83,12 @@ int new_process(
 //Compile function
 std::pair<int, std::string> compile(int cfd, const char *code) {
     const std::string binary = "sol" + std::to_string(cfd);
+    const std::string binary_path = temp_dir + binary;
     std::vector<char*> compile_args = {
         (char*)"g++",
         const_cast<char*>(code),
         (char*)("-o"),
-        const_cast<char*>(binary.c_str()),
+        const_cast<char*>(binary_path.c_str()),
     };
     for(const auto arg:compiler_args) {
         compile_args.push_back(arg);

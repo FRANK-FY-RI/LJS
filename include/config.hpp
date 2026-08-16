@@ -29,6 +29,9 @@ constexpr int max_threads = 11;
 //Address for keeping temporary files
 const std::string temp_dir = "/tmp/";
 
+// Problem Directory
+const std::string prob_dir = "/home/frank/sb/";
+
 
 // Common process limits
 constexpr rlim_t COMMON_CPU_LIMIT = 60;
