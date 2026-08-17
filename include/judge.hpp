@@ -66,8 +66,6 @@ std::optional<std::string> resolve_source(
 
     std::filesystem::path home = pw->pw_dir;
 
-    std::cout<<home.c_str()<<'\n';
-
     std::error_code ec;
 
     std::filesystem::path source =

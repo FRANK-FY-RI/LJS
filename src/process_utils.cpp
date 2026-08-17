@@ -69,6 +69,8 @@ int new_process(
 
             return PROCESS_ERROR;
         } 
+
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
     } 
 
     if(WIFEXITED(status)) {
