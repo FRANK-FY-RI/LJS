@@ -6,6 +6,7 @@
 #include "../include/judge.hpp"
 
 void new_connection(int cfd, const std::string& client_cwd, uid_t client_uid) {
+    if(send_client(cfd, "\033[36mJudging...\033[0m\n") == -1) return;
     char buf[MAXDATASIZE+1];
     int bytes_read;
     std::string msg;
@@ -143,6 +144,8 @@ int main() {
         cwd[pathlen] = '\0';
 
         std::string client_cwd(cwd);
+
+        send_client(cfd, "\033[36mIn queue...\033[0m\n");
 
         pool.submit([=](){new_connection(cfd, client_cwd, client_uid);});
     } 
