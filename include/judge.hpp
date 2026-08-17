@@ -25,31 +25,31 @@ inline int send_client(int cfd, const std::string& msg) {
 //error message
 void error_msg(int cfd, int status) {
     if(status == CHILD_PROCESS_ERROR) {
-        send_client(cfd, "Unble to run some program\n\n");
+        send_client(cfd, "\033[34mUnable to run some program\033[0m\n");
     }
     else if(status == TLE) {
-        send_client(cfd, "Time Limit Exceeded\n\n");
+        send_client(cfd, "\033[91mTime Limit Exceeded\033[0m\n");
     }
     else if(status == MLE) {
-        send_client(cfd, "Memory Limit Exceeded\n\n");
+        send_client(cfd, "\033[91mMemory Limit Exceeded\033[0m\n");
     }
     else if(status == RUNTIME_ERROR) {
         int exitcode = std::stoi(exitsig); 
         std::string msg;
         if(exitcode<0) {
-            msg = static_cast<std::string>("Program exited with exit code ")
-            + std::to_string(-exitcode) + static_cast<std::string>("\n\n");     
+            msg = static_cast<std::string>("\033[91mProgram exited with exit code ")
+            + std::to_string(-exitcode) + static_cast<std::string>("\033[0m\n");     
         }
-        else msg = strsignal(std::stoi(exitsig)) + static_cast<std::string>("\n\n");
+        else msg = (std::string)"\033[91m" + strsignal(std::stoi(exitsig)) + static_cast<std::string>("\033[0m\n");
         send_client(cfd, msg);
     }
     else if(status == PROCESS_ERROR) {
-        send_client(cfd, "Process Error\n\n");
+        send_client(cfd, "\033[34mProcess Error\033[0m\n");
     }
     else if(status == WA) {
-        send_client(cfd, "Wrong answer\n\n");
+        send_client(cfd, "\033[31mWrong Answer\033[0m\n");
     }
-    else send_client(cfd, "Passed\n\n");
+    else send_client(cfd, "\033[32mAccepted\033[0m\n");
 }
 
 
@@ -172,15 +172,26 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
         bool file_exists = false;
         if(access(input_file_path.c_str(), F_OK) == 0 ) file_exists = true;
         if(!file_exists) {
-            if(ac == i-1) {
-                if(send_client(cfd, "✅ ")==-1) return PROCESS_ERROR;
+            std::string verdict;
+
+            if (ac == i - 1) {
+                verdict =
+                    "\033[1;32m────────────────────────\033[0m\n"
+                    "\033[1;32m✔ Accepted — " +
+                    std::to_string(ac) + "/" + std::to_string(i - 1) +
+                    " Passed\033[0m\n"
+                    "\033[1;32m────────────────────────\033[0m\n";
             }
             else {
-                if(send_client(cfd, "❌ ")==-1) return PROCESS_ERROR;
+                verdict =
+                    "\033[1;31m────────────────────────\033[0m\n"
+                    "\033[1;31m✘ Wrong Answer — " +
+                    std::to_string(ac) + "/" + std::to_string(i - 1) +
+                    " Passed\033[0m\n"
+                    "\033[1;31m────────────────────────\033[0m\n";
             }
-            std::string msg = std::to_string(ac) + static_cast<std::string>("/") + 
-            std::to_string(i-1) + static_cast<std::string>("Passed\n");
-            if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
+
+            send_client(cfd, verdict);
             rm(binary_path);
             if(ac == (i-1)) return AC;
             return WA;
