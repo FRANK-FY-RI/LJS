@@ -5,7 +5,7 @@
 #include "../include/threadpool.hpp"
 #include "../include/judge.hpp"
 
-void new_connection(int cfd, const std::string& client_cwd) {
+void new_connection(int cfd, const std::string& client_cwd, uid_t client_uid) {
     char buf[MAXDATASIZE+1];
     int bytes_read;
     std::string msg;
@@ -39,10 +39,10 @@ void new_connection(int cfd, const std::string& client_cwd) {
     std::string cmd = argv[0];
  
     if(cmd == "run") {
-        run(cfd, argv, client_cwd);
+        run(cfd, argv, client_cwd, client_uid);
     }
     else if(cmd == "submit") {
-        submit(cfd, argv, client_cwd);
+        submit(cfd, argv, client_cwd, client_uid);
     }
     else {
         std::cout << "options are:\n";
@@ -144,7 +144,7 @@ int main() {
 
         std::string client_cwd(cwd);
 
-        pool.submit([cfd, client_cwd](){new_connection(cfd, client_cwd);});
+        pool.submit([=](){new_connection(cfd, client_cwd, client_uid);});
     } 
 
     return 0;

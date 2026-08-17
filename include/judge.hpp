@@ -4,9 +4,13 @@
 
 #include "process_utils.hpp"
 #include "isolate_utils.hpp"
+#include <pwd.h>
 #include "socket.hpp"
 #include <iostream>
 #include <vector>
+#include <sys/stat.h>
+#include <filesystem>
+#include <optional>
 
 
 inline int send_client(int cfd, const std::string& msg) {
@@ -46,6 +50,53 @@ void error_msg(int cfd, int status) {
         send_client(cfd, "Wrong answer\n\n");
     }
     else send_client(cfd, "Passed\n\n");
+}
+
+
+// check source code from client's directory
+std::optional<std::string> resolve_source(
+    const std::string& cwd,
+    const std::string& filename,
+    uid_t uid
+) {
+    struct passwd* pw = getpwuid(uid);
+
+    if (!pw)
+        return std::nullopt;
+
+    std::filesystem::path home = pw->pw_dir;
+
+    std::cout<<home.c_str()<<'\n';
+
+    std::error_code ec;
+
+    std::filesystem::path source =
+        std::filesystem::weakly_canonical(
+            std::filesystem::path(cwd) / filename,
+            ec
+        );
+
+    if (ec)
+        return std::nullopt;
+
+    auto relative =
+        std::filesystem::relative(source, home, ec);
+
+    if (ec || relative.empty() ||
+        *relative.begin() == "..") {
+
+        return std::nullopt;
+    }
+
+    struct stat st{};
+
+    if (stat(source.c_str(), &st) == -1)
+        return std::nullopt;
+
+    if (st.st_uid != uid)
+        return std::nullopt;
+
+    return source.string();
 }
 
 //judge function
@@ -158,29 +209,37 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
 
 
 //run command
-int run(int cfd, std::vector<std::string> &argv, const std::string& client_cwd) { 
+int run(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
-    std::string code_path = client_cwd + (std::string)"/" + (std::string)argv[3]; 
-    return runfn(cfd, tc_path, code_path);
+    auto source = resolve_source(client_cwd, argv[3], client_uid);
+    if(!source) {
+        send_client(cfd, "Invalid source file\n");
+        return PROCESS_ERROR;
+    }
+    return runfn(cfd, tc_path, *source);
 }
 
 
 //submit
-int submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd) { 
+int submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_ex_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/";
     std::string tc_path = prob_dir + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
-    std::string code_path = client_cwd + (std::string)"/" + argv[3];
+    auto source = resolve_source(client_cwd, argv[3], client_uid);
+    if(!source) {
+        send_client(cfd, "Invalid source file\n");
+        return PROCESS_ERROR;
+    }
     
     //first check if ex_tc passes
-    if(runfn(cfd, tc_ex_path, code_path) != AC) {
+    if(runfn(cfd, tc_ex_path, *source) != AC) {
         if(send_client(cfd, "Example Test Case Failed\n")==-1) return PROCESS_ERROR;
         return WA;
     } 
-    return runfn(cfd, tc_path, code_path);
+    return runfn(cfd, tc_path, *source);
 }
 
 
