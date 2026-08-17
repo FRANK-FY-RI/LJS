@@ -1,6 +1,7 @@
 #include "../include/socket.hpp"
 #include <unistd.h>
 #include <iostream>
+#include "../include/config.hpp"
 
 bool isAlphaNumeric(const std::string& s) noexcept {
     for (char c : s) {
@@ -75,6 +76,21 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout<<"connection established\n";
+
+    // send client's working directory
+    char cwd[MAX_PATH];
+    if(getcwd(cwd, sizeof(cwd)) == nullptr) {
+        perror("getcwd");
+        close(sfd);
+        return 1;
+    }
+    std::string cwd_msg = std::string(cwd) + '\n';
+    std::cout<<"cliend cwd: "<<cwd_msg;
+    if(send(sfd, cwd_msg.c_str(), cwd_msg.size(), 0) != cwd_msg.size()) {
+        perror("send");
+        close(sfd);
+        return 1;
+    }
 
     //send the arguments to the judge
     for(int i = 1; i<argc; i++) { 

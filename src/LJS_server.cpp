@@ -5,7 +5,7 @@
 #include "../include/threadpool.hpp"
 #include "../include/judge.hpp"
 
-void new_connection(int cfd, const std::string& client_cwd, uid_t client_uid) {
+void new_connection(int cfd, uid_t client_uid) {
     if(send_client(cfd, "\033[36mJudging...\033[0m\n") == -1) return;
     char buf[MAXDATASIZE+1];
     int bytes_read;
@@ -22,9 +22,15 @@ void new_connection(int cfd, const std::string& client_cwd, uid_t client_uid) {
 
     std::string temp;
     std::vector<std::string> argv;
+    bool got_cwd = true;
+    std::string client_cwd;
     for(auto it:msg) {
         if(it == '\n') {
-            argv.emplace_back(temp);
+            if(got_cwd) {
+                client_cwd = temp;
+                got_cwd = false;
+            }
+            else argv.emplace_back(temp);
             temp.clear();
         }
         else temp += it;
@@ -122,32 +128,9 @@ int main() {
 
         std::cout<<"Connection Established with pid " <<client_pid<<'\n';
 
-        char cwd[MAX_PATH];
-
-        std::string proc_cwd =
-            "/proc/" +
-            std::to_string(client_pid) +
-            "/cwd";
-
-        ssize_t pathlen = readlink(
-            proc_cwd.c_str(),
-            cwd,
-            sizeof(cwd) - 1
-        );
-
-        if(pathlen == -1) {
-            perror("readlink");
-            close(cfd);
-            continue;
-        }
-
-        cwd[pathlen] = '\0';
-
-        std::string client_cwd(cwd);
-
         send_client(cfd, "\033[36mIn queue...\033[0m\n");
 
-        pool.submit([=](){new_connection(cfd, client_cwd, client_uid);});
+        pool.submit([=](){new_connection(cfd, client_uid);});
     } 
 
     return 0;
