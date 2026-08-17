@@ -29,6 +29,13 @@ void new_connection(int cfd, const std::string& client_cwd) {
         else temp += it;
     }
 
+    if(argv.size() != 4) {
+        send_client(cfd, "Incorrect Number of Arguments\n");
+        std::cout<<"Connection Ended\n";
+        close(cfd);
+        return;
+    }
+
     std::string cmd = argv[0];
  
     if(cmd == "run") {
@@ -42,7 +49,7 @@ void new_connection(int cfd, const std::string& client_cwd) {
         std::cout << "    run\n";
         std::cout << "    submit\n";
     }
-    std::cout<<"connection ended\n";
+    std::cout<<"Connection Ended\n";
     close(cfd);
 }
 
@@ -112,7 +119,7 @@ int main() {
         pid_t client_pid = cred.pid;
         uid_t client_uid = cred.uid;
 
-        std::cout<<"connection established with pid " <<client_pid<<'\n';
+        std::cout<<"Connection Established with pid " <<client_pid<<'\n';
 
         char cwd[MAX_PATH];
 
