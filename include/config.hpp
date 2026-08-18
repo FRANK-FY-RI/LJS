@@ -24,7 +24,6 @@ const std::vector<char*> isolate_run_args = {
     const_cast<char*>(walltime_arg.c_str()),
     const_cast<char*>(runtime_arg.c_str()),
     const_cast<char*>(memory_arg.c_str()),
-    NULL
 };
 
 //g++ compiler flags

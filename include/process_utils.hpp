@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <thread>
+#include <filesystem>
 #include "config.hpp"
 
 
@@ -53,6 +54,14 @@ constexpr ProcessLimits COMPILE_LIMITS{
 };
 
 
+// Compile Status
+struct Compile_Status {
+    int status;
+    std::string binary;
+    std::string binary_path;
+};
+
+
 
 // Helper to set limits
 static void set_limits(const ProcessLimits& limits) {
@@ -88,7 +97,7 @@ int new_process(
 
 
 //function to compile
-std::pair<int, std::string> compile(int cfd, const char *code);
+Compile_Status compile(int cfd, const char *code);
 
 
 //delete a file
@@ -100,5 +109,8 @@ inline int rm(const std::string& path) {
 //file compare
 int diff(const std::string& file1_path, const std::string& file2_path);
 
+
+//copy file
+int copy_file(const std::string& source_file_path, const std::string& dest_dir);
 
 #endif

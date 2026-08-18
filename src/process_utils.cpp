@@ -1,8 +1,6 @@
 #include "../include/process_utils.hpp"
 
 
-
-
 //function to start a new process
 int new_process(
     const char* path,
@@ -64,10 +62,10 @@ int new_process(
 
         if(std::chrono::steady_clock::now() - start > limits.wall_timeout) {
 
-            kill(pid, SIGKILL);
+            kill(-pid, SIGKILL);
             waitpid(pid, &status, 0);
 
-            return PROCESS_ERROR;
+            return TLE;
         } 
 
         std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -83,26 +81,27 @@ int new_process(
 
 
 //Compile function
-std::pair<int, std::string> compile(int cfd, const char *code) {
-    const std::string binary = "sol" + std::to_string(cfd);
-    const std::string binary_path = temp_dir + binary;
+Compile_Status compile(int cfd, const char *code) {
+    Compile_Status status;
+    status.binary = static_cast<std::string>("sol") + std::to_string(cfd);
+    status.binary_path = temp_dir + status.binary;
     std::vector<char*> compile_args = {
         (char*)"g++",
         const_cast<char*>(code),
         (char*)("-o"),
-        const_cast<char*>(binary_path.c_str()),
+        const_cast<char*>(status.binary_path.c_str()),
     };
     for(const auto arg:compiler_args) {
         compile_args.push_back(arg);
     }
     compile_args.push_back(NULL);
-    int status = new_process(
+    status.status = new_process(
         "/usr/bin/g++",
         compile_args.data(),
         -1, -1, cfd,
         COMPILE_LIMITS
     ); 
-    return {status, binary};
+    return status;
 }
 
 
@@ -124,5 +123,22 @@ int diff(const std::string& file1_path, const std::string& file2_path) {
         rtrim(s2);
         if(s1 != s2) return 1;
     } 
+    return 0;
+}
+
+
+//copy file
+int copy_file(const std::string& source_file_path, const std::string& dest_dir) {
+    namespace fs = std::filesystem;
+    try {
+        fs::copy_file(
+            source_file_path,
+            fs::path(dest_dir) / fs::path(source_file_path).filename(),
+            fs::copy_options::overwrite_existing
+        );
+    }
+    catch (const fs::filesystem_error& e) {
+        return PROCESS_ERROR;
+    }
     return 0;
 }

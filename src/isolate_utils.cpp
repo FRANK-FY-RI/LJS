@@ -1,14 +1,14 @@
 #include "../include/isolate_utils.hpp"
 
 
-
-//Isolate run
-std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary_file, const std::string& binary_file_path, const std::string& input_file, const std::string& input_file_path) {
+// Isolate Init
+Isolate_Init_status isolate_init() {
+    Isolate_Init_status status;
     int curr_box = box_cnt.fetch_add(1) % 1000;
-    std::string box_id = std::to_string(curr_box);
-    std::string box_path = "/var/local/lib/isolate/" + box_id + "/box/";
-    std::string box_id_init_arg = (std::string)"--box-id=" + box_id;
-
+    status.box_id = std::to_string(curr_box);
+    status.box_path = "/var/local/lib/isolate/" + status.box_id + "/box/";
+    std::string box_id_init_arg = (std::string)"--box-id=" + status.box_id;
+    
     //Initialize the box
     std::vector<char*> init_args = {
         (char*)"isolate",
@@ -16,46 +16,23 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
         (char*)"--cg",
         const_cast<char*>(box_id_init_arg.c_str()),
         NULL
-    };
+    }; 
+    status.status = new_process("/usr/local/bin/isolate", init_args.data(), -1, STDOUT_FILENO, STDERR_FILENO);
+    return status;
+}
 
-    const int devnull = open("/dev/null", O_WRONLY);
-    if(devnull == -1) {
-        return {CHILD_PROCESS_ERROR, box_id};
-    }
-    int status = new_process("/usr/local/bin/isolate", init_args.data(), -1, devnull, cfd);
-    close(devnull);
-    // cout<<"Init status: "<<status<<endl;
-    if(status) return {status, box_id};
 
-    //Populate
-    namespace fs = std::filesystem;
-    try {
-        fs::copy_file(
-            binary_file_path,
-            fs::path(box_path) / fs::path(binary_file_path).filename(),
-            fs::copy_options::overwrite_existing
-        );
-
-        fs::copy_file(
-            input_file_path,
-            fs::path(box_path) / fs::path(input_file_path).filename(),
-            fs::copy_options::overwrite_existing
-        );
-    }
-    catch (const fs::filesystem_error&) {
-        isolate_cleanup(cfd, box_id);
-        return {PROCESS_ERROR, box_id};
-    }
- 
-
-    //run
-    std::string output_file = (std::string)"out" + box_id + ".txt";
+//Isolate run
+int isolate_run(
+    const std::string& box_id,
+    const std::string& binary_file,
+    const std::string& input_file
+) { 
+    const auto box_id_init_arg = (std::string)"--box-id=" + box_id;
     std::string metadata_file_path = temp_dir + box_id + (std::string)".meta";
     std::string metadata_init = (std::string)"--meta=" + metadata_file_path;
     std::string stdin_arg = (std::string)"--stdin=" + input_file;
-    std::string stdout_arg = (std::string)"--stdout=" + output_file;
-    std::string time_arg = (std::string)"--time=" + Time_Limit;
-    std::string memory_arg = (std::string)"--cg-mem=" + Memory_Limit;
+    std::string stdout_arg = (std::string)"--stdout=out" + box_id + (std::string)".txt";
     std::vector<char*> run_args = {
         (char*)"isolate",
         const_cast<char*>(box_id_init_arg.c_str()),
@@ -63,42 +40,25 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
         (char*)"--cg",
         const_cast<char*>(metadata_init.c_str()),
         const_cast<char*>(stdin_arg.c_str()),
-        const_cast<char*>(stdout_arg.c_str()),
-        (char*)"--",
-        const_cast<char*>(binary_file.c_str()),
+        const_cast<char*>(stdout_arg.c_str()), 
     };
     for(const auto arg:isolate_run_args) {
         run_args.emplace_back(arg);
     }
+    run_args.push_back((char*)"--");
+    run_args.push_back(const_cast<char*>(binary_file.c_str()));
     run_args.push_back(NULL);
-    status = new_process("/usr/local/bin/isolate", run_args.data(), -1, -1, cfd); 
-    if(status) {
-        isolate_cleanup(cfd, box_id);    
-        return {status, box_id};
-    }
-
-    //copy output file
-    std::string output_file_source = box_path + output_file;
-    std::string output_file_dest = temp_dir + output_file;
-    try {
-        fs::copy_file(
-            output_file_source, output_file_dest,
-            fs::copy_options::overwrite_existing
-        );
-    }
-    catch (const fs::filesystem_error& e) {
-        isolate_cleanup(cfd, box_id);
-        return {PROCESS_ERROR, box_id};
-    } 
- 
-    isolate_cleanup(cfd, box_id);
-    return {status, box_id}; 
+    return new_process(
+        "/usr/local/bin/isolate", 
+        run_args.data(),
+        -1, STDOUT_FILENO, STDERR_FILENO
+    ); 
 }
 
 
 
 //Isolate cleanup
-int isolate_cleanup(const int cfd, std::string boxid) {
+int isolate_cleanup(const std::string& boxid) {
     std::string box_init = "--box-id=" + boxid;
     std::vector<char*> args = {
         (char*)"isolate",
@@ -107,7 +67,10 @@ int isolate_cleanup(const int cfd, std::string boxid) {
         const_cast<char*>(box_init.c_str()),
         NULL
     };
-    return new_process("/usr/local/bin/isolate", args.data(), -1, -1, cfd);
+    return new_process(
+        "/usr/local/bin/isolate",
+        args.data(), -1, STDOUT_FILENO, STDERR_FILENO
+    );
 }
 
 
@@ -117,7 +80,7 @@ int metadata_verdict(const std::string& metadata_file_path) {
     exitsig.clear();
     std::ifstream file(metadata_file_path); 
     if(!file.is_open()) {
-        return CHILD_PROCESS_ERROR;
+        return PROCESS_ERROR;
     }
     std::string key, value, status;
     int exitcode = 0;
