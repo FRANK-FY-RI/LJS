@@ -11,10 +11,10 @@
 inline const std::string Time_Limit = "2";
 
 //Time Limit for program lifetime in seconds
-inline const std::string Wall_Time_Limit = "5";
+inline const std::string Wall_Time_Limit = "2.5";
 
 //Memory Limit for program execution in Kilobytes(KB)
-inline const std::string Memory_Limit = "1000";
+inline const std::string Memory_Limit = "10240";
 
 //Isolate Sandbox Run arguments
 const std::string runtime_arg = (std::string)"--time=" + Time_Limit;
@@ -55,13 +55,13 @@ constexpr rlim_t COMMON_MEMORY_LIMIT = 2ULL * 1024 * 1024 * 1024; // 2 GB
 constexpr rlim_t COMMON_FILE_SIZE_LIMIT = 512ULL * 1024 * 1024;   // 512 MB
 constexpr rlim_t COMMON_NO_OF_FILE_LIMIT = 128;
 
-constexpr std::chrono::seconds COMMON_WALL_TIMEOUT_SEC{15};
+constexpr std::chrono::seconds COMMON_WALL_TIMEOUT_SEC{5};
 
 // Compiler-specific
 constexpr rlim_t COMPILE_CPU_LIMIT = 10;
 constexpr rlim_t COMPILE_MEMORY_LIMIT = 1ULL * 1024 * 1024 * 1024;
 constexpr rlim_t COMPILE_FILE_SIZE_LIMIT = 16ULL * 1024 * 1024;
-constexpr std::chrono::seconds COMPILE_WALL_TIMEOUT_SEC{10};
+constexpr std::chrono::seconds COMPILE_WALL_TIMEOUT_SEC{2};
 
 
 #endif
