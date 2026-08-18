@@ -59,17 +59,18 @@ std::pair<int, std::string> isolate_run(const int cfd, const std::string& binary
     std::vector<char*> run_args = {
         (char*)"isolate",
         const_cast<char*>(box_id_init_arg.c_str()),
-        (char*)"--run",
-        const_cast<char*>(time_arg.c_str()),
+        (char*)"--run", 
         (char*)"--cg",
-        const_cast<char*>(memory_arg.c_str()),
         const_cast<char*>(metadata_init.c_str()),
         const_cast<char*>(stdin_arg.c_str()),
         const_cast<char*>(stdout_arg.c_str()),
         (char*)"--",
         const_cast<char*>(binary_file.c_str()),
-        NULL
     };
+    for(const auto arg:isolate_run_args) {
+        run_args.emplace_back(arg);
+    }
+    run_args.push_back(NULL);
     status = new_process("/usr/local/bin/isolate", run_args.data(), -1, -1, cfd); 
     if(status) {
         isolate_cleanup(cfd, box_id);    

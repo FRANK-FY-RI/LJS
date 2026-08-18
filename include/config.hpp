@@ -7,11 +7,25 @@
 #include <chrono>
 #include <string>
 
-//Time Limit for program execution in seconds
+//Time Limit for runtime of program execution in seconds
 inline const std::string Time_Limit = "2";
+
+//Time Limit for program lifetime in seconds
+inline const std::string Wall_Time_Limit = "5";
 
 //Memory Limit for program execution in Kilobytes(KB)
 inline const std::string Memory_Limit = "1000";
+
+//Isolate Sandbox Run arguments
+const std::string runtime_arg = (std::string)"--time=" + Time_Limit;
+const std::string memory_arg = (std::string)"--cg-mem=" + Memory_Limit;
+const std::string walltime_arg = static_cast<std::string>("--wall-time=") + Wall_Time_Limit;
+const std::vector<char*> isolate_run_args = {
+    const_cast<char*>(walltime_arg.c_str()),
+    const_cast<char*>(runtime_arg.c_str()),
+    const_cast<char*>(memory_arg.c_str()),
+    NULL
+};
 
 //g++ compiler flags
 const std::vector<char*> compiler_args = {
