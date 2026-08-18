@@ -85,9 +85,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     std::string cwd_msg = std::string(cwd) + '\n';
-    std::cout<<"cliend cwd: "<<cwd_msg;
-    if(send(sfd, cwd_msg.c_str(), cwd_msg.size(), 0) != cwd_msg.size()) {
+    ssize_t bytes_sent = send(sfd, cwd_msg.c_str(), cwd_msg.size(), 0);
+    if(bytes_sent == -1) {
         perror("send");
+        close(sfd);
+        return 1;
+    }
+    if(static_cast<size_t>(bytes_sent) != cwd_msg.size()) {
+        perror("partial send");
         close(sfd);
         return 1;
     }
@@ -95,13 +100,15 @@ int main(int argc, char *argv[]) {
     //send the arguments to the judge
     for(int i = 1; i<argc; i++) { 
         std::string msg = static_cast<std::string>(argv[i]) + '\n';
-        int bytes_sent = send(sfd, msg.c_str(), msg.size(), 0);
+        ssize_t bytes_sent = send(sfd, msg.c_str(), msg.size(), 0);
         if(bytes_sent == -1) {
             perror("send");
+            close(sfd);
             return 1;
         }
-        if(bytes_sent != msg.size()) {
+        if(static_cast<size_t>(bytes_sent) != msg.size()) {
             perror("partial send");
+            close(sfd);
             return 1;
         }
     }

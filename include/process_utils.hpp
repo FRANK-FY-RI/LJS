@@ -64,7 +64,7 @@ struct Compile_Status {
 
 
 // Helper to set limits
-static void set_limits(const ProcessLimits& limits) {
+inline void set_limits(const ProcessLimits& limits) {
     struct rlimit lim{};
 
     lim.rlim_cur = lim.rlim_max = limits.cpu;
