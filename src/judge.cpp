@@ -57,23 +57,36 @@ int judge(
     
     //Initialize the sandbox
     Isolate_Init_status isolate_init_status = isolate_init();
+    if(isolate_init_status.status) {
+        send_client(cfd, "Unable to Initialize a new sandbox\n");
+        return isolate_init_status.status;
+    }
 
     //Populate the sandbox
     //copy the binary into the sandbox
     if(copy_file(binary_file_path, isolate_init_status.box_path)) {
         send_client(cfd, "Unable to copy binary file into the sandbox\n");
+        if(isolate_cleanup(isolate_init_status.box_id)) {
+            send_client(cfd, "Unable to delete the sandbox\n");
+        }
         return PROCESS_ERROR;    
     }
     //copy the input file into the sandbox
     if(copy_file(input_file_path, isolate_init_status.box_path)) {
         send_client(cfd, "Unable to copy input file into the sandbox\n");
+        if(isolate_cleanup(isolate_init_status.box_id)) {
+            send_client(cfd, "Unable to delete the sandbox\n");
+        }
         return PROCESS_ERROR;
     }
  
     //run
     auto isolate_run_status = isolate_run(isolate_init_status.box_id, binary_file, input_file);
     if(isolate_run_status == CHILD_PROCESS_ERROR) {
-        send_client(cfd, "Unable to spawn new process: isolate sandbox\n");
+        send_client(cfd, "Unable to run the sandbox\n");
+        if(isolate_cleanup(isolate_init_status.box_id)) {
+            send_client(cfd, "Unable to delete the sandbox\n");
+        } 
         return isolate_run_status;
     }  
 
@@ -84,9 +97,17 @@ int judge(
     rm(metadata_file_path);
     if(metadata_status == PROCESS_ERROR) {
         send_client(cfd, "Unable to open metadata file\n");
+        if(isolate_cleanup(isolate_init_status.box_id)) {
+            send_client(cfd, "Unable to delete the sandbox\n");
+        }
         return PROCESS_ERROR;
     }
-    if(metadata_status) return metadata_status;
+    if(metadata_status) {
+         if(isolate_cleanup(isolate_init_status.box_id)) {
+            send_client(cfd, "Unable to delete the sandbox\n");
+        }   
+        return metadata_status;
+    }
 
     //copy the output file into temporary directory
     const std::string output_file = (std::string)"out" + isolate_init_status.box_id + ".txt";
@@ -96,12 +117,18 @@ int judge(
         temp_dir
     )) {
         send_client(cfd, "Unable to copy output file\n");
+        if(isolate_cleanup(isolate_init_status.box_id)) {
+            send_client(cfd, "Unable to delete the sandbox\n");
+        }   
         return PROCESS_ERROR;
     } 
 
     //check the output and answer  
     auto diff_status = diff(answer_file_path, output_file_path); 
     rm(output_file_path); 
+    if(isolate_cleanup(isolate_init_status.box_id)) {
+        send_client(cfd, "Unable to delete the sandbox\n");
+    }
     if(diff_status == PROCESS_ERROR) {
         send_client(cfd, "Unable to open output or answer files\n");
         return PROCESS_ERROR;
