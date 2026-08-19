@@ -38,10 +38,10 @@ int isolate_run(
         (char*)"isolate",
         const_cast<char*>(box_id_init_arg.c_str()),
         (char*)"--run", 
-        (char*)"--cg",
         const_cast<char*>(metadata_init.c_str()),
         const_cast<char*>(stdin_arg.c_str()),
         const_cast<char*>(stdout_arg.c_str()), 
+        (char*)"--cg",
     };
     for(const auto arg:isolate_run_args) {
         run_args.emplace_back(arg);

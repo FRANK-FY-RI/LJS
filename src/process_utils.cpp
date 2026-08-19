@@ -29,13 +29,13 @@ int new_process(
 
         // redirect input
         if(input_fd != -1) {
-            dup2(input_fd, 0);
+            dup2(input_fd, STDIN_FILENO);
             close(input_fd);
         }
 
         // redirect output
         if(output_fd != -1) {
-            dup2(output_fd, 1);
+            dup2(output_fd, STDOUT_FILENO);
             close(output_fd);
         }
 

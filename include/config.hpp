@@ -21,15 +21,16 @@ const std::string runtime_arg = (std::string)"--time=" + Time_Limit;
 const std::string memory_arg = (std::string)"--cg-mem=" + Memory_Limit;
 const std::string walltime_arg = static_cast<std::string>("--wall-time=") + Wall_Time_Limit;
 const std::vector<char*> isolate_run_args = {
+    const_cast<char*>(memory_arg.c_str()),
     const_cast<char*>(walltime_arg.c_str()),
     const_cast<char*>(runtime_arg.c_str()),
-    const_cast<char*>(memory_arg.c_str()),
 };
 
 //g++ compiler flags
 const std::vector<char*> compiler_args = {
     (char*)"-std=c++20",
     (char*)"-Wall",
+    (char*)"-Wextra",
     (char*)"-static-libstdc++"
 };
 
