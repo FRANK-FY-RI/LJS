@@ -81,7 +81,7 @@ int judge(
     }
  
     //run
-    auto isolate_run_status = isolate_run(isolate_init_status.box_id, binary_file, input_file);
+    auto isolate_run_status = isolate_run(cfd, isolate_init_status.box_id, binary_file, input_file);
     if(isolate_run_status == CHILD_PROCESS_ERROR) {
         send_client(cfd, "Unable to run the sandbox\n");
         if(isolate_cleanup(isolate_init_status.box_id)) {
