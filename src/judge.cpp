@@ -103,9 +103,31 @@ int judge(
         return PROCESS_ERROR;
     }
     if(metadata_status) {
-         if(isolate_cleanup(isolate_init_status.box_id)) {
+        const std::string error_file = (std::string)"err" + isolate_init_status.box_id + ".err"; 
+        const std::string error_file_path = temp_dir + error_file;
+        if(copy_file(
+            isolate_init_status.box_path + error_file,
+            temp_dir
+        )) {
+            send_client(cfd, "Unable to copy error file\n"); 
+        }
+
+        if(isolate_cleanup(isolate_init_status.box_id)) {
             send_client(cfd, "Unable to delete the sandbox\n");
         }   
+
+        {
+            std::ifstream file(error_file_path);
+            if(!file) return metadata_status;
+            std::string content(
+                (std::istreambuf_iterator<char>(file)),
+                std::istreambuf_iterator<char>()
+            );
+
+            if (!content.empty()) {
+                send_client(cfd, content);
+            }
+        }
         return metadata_status;
     }
 

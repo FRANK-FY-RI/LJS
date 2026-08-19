@@ -34,13 +34,15 @@ int isolate_run(
     std::string metadata_init = (std::string)"--meta=" + metadata_file_path;
     std::string stdin_arg = (std::string)"--stdin=" + input_file;
     std::string stdout_arg = (std::string)"--stdout=out" + box_id + (std::string)".txt";
+    std::string stderr_arg = (std::string)"--stderr=err" + box_id + (std::string)".err";
     std::vector<char*> run_args = {
         (char*)"isolate",
         const_cast<char*>(box_id_init_arg.c_str()),
         (char*)"--run", 
         const_cast<char*>(metadata_init.c_str()),
         const_cast<char*>(stdin_arg.c_str()),
-        const_cast<char*>(stdout_arg.c_str()), 
+        const_cast<char*>(stdout_arg.c_str()),
+        const_cast<char*>(stderr_arg.c_str()), 
         (char*)"--cg",
     };
     for(const auto arg:isolate_run_args) {
@@ -52,7 +54,7 @@ int isolate_run(
     return new_process(
         "/usr/local/bin/isolate", 
         run_args.data(),
-        -1, STDOUT_FILENO, cfd
+        -1, -1, -1
     ); 
 }
 
