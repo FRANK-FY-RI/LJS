@@ -28,19 +28,19 @@ int new_process(
         set_limits(limits);
 
         // redirect input
-        if(input_fd != -1) {
+        if(input_fd != -1 && input_fd != STDIN_FILENO) {
             dup2(input_fd, STDIN_FILENO);
             close(input_fd);
         }
 
         // redirect output
-        if(output_fd != -1) {
+        if(output_fd != -1 && output_fd != STDOUT_FILENO) {
             dup2(output_fd, STDOUT_FILENO);
             close(output_fd);
         }
 
         // redirect error
-        if(error_fd != -1) {
+        if(error_fd != -1 && error_fd != STDERR_FILENO) {
             dup2(error_fd, STDERR_FILENO);
             close(error_fd);
         }

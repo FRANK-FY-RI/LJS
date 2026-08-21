@@ -23,7 +23,6 @@ Isolate_Init_status isolate_init();
 
 //Isolate Runner
 int isolate_run(
-    int cfd,
     const std::string& box_id,
     const std::string& binary_file,
     const std::string& input_file

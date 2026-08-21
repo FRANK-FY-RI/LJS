@@ -24,7 +24,6 @@ Isolate_Init_status isolate_init() {
 
 //Isolate run
 int isolate_run(
-    int cfd,
     const std::string& box_id,
     const std::string& binary_file,
     const std::string& input_file
@@ -54,7 +53,7 @@ int isolate_run(
     return new_process(
         "/usr/local/bin/isolate", 
         run_args.data(),
-        -1, -1, -1
+        -1, STDOUT_FILENO, STDERR_FILENO
     ); 
 }
 
