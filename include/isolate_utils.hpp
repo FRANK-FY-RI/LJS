@@ -6,10 +6,17 @@
 #include <atomic>
 #include <vector>
 #include "config.hpp"
+#include "threadsafe_queue.hpp"
 
 
-static std::atomic<int> box_cnt{0};
+static threadsafe_queue<int> free_box_ids;
 
+const static auto free_box_ids_queue_init = [](){
+    for(int i = 0; i<1000; i++) {
+        free_box_ids.push(i);
+    }
+    return 0;
+}();
 
 struct Isolate_Init_status{
     int status;

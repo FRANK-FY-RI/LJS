@@ -4,7 +4,8 @@
 // Isolate Init
 Isolate_Init_status isolate_init() {
     Isolate_Init_status status;
-    int curr_box = box_cnt.fetch_add(1) % 1000;
+    int curr_box;
+    free_box_ids.wait_and_pop(curr_box);
     status.box_id = std::to_string(curr_box);
     status.box_path = "/var/local/lib/isolate/" + status.box_id + "/box/";
     std::string box_id_init_arg = (std::string)"--box-id=" + status.box_id;
@@ -69,6 +70,7 @@ int isolate_cleanup(const std::string& boxid) {
         const_cast<char*>(box_init.c_str()),
         NULL
     };
+    free_box_ids.push(std::stoi(boxid));
     return new_process(
         "/usr/local/bin/isolate",
         args.data(), -1, STDOUT_FILENO, STDERR_FILENO
