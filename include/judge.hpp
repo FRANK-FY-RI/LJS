@@ -24,8 +24,13 @@ inline void error_msg(int cfd, int status) {
         send_client(cfd, "\033[91mMemory Limit Exceeded\033[0m\n");
     }
     else if(status == RUNTIME_ERROR) {
-        int exitcode = std::stoi(exitsig); 
         std::string msg;
+        if(exitsig.empty()) {
+            msg = "\033[91mProgram exited with unknown error\033[0m\n";
+            send_client(cfd, msg);
+            return;
+        }
+        int exitcode = std::stoi(exitsig); 
         if(exitcode<0) {
             msg = static_cast<std::string>("\033[91mProgram exited with exit code ")
             + std::to_string(-exitcode) + static_cast<std::string>("\033[0m\n");     
