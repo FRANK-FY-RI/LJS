@@ -128,6 +128,7 @@ int judge(
                 send_client(cfd, content);
             }
         }
+        rm(error_file_path);
         return metadata_status;
     }
 
@@ -234,7 +235,10 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
          
         std::string msg = static_cast<std::string>("Test ") + 
         std::to_string(i) + static_cast<std::string>(": ");
-        if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
+        if(send_client(cfd, msg)==-1) {
+            rm(compile_status.binary_path);
+            return PROCESS_ERROR;
+        }
         if(!status) ac++;
         error_msg(cfd, status); 
         i++; 
