@@ -24,7 +24,7 @@ Isolate_Init_status isolate_init() {
 
 
 //Isolate run
-int isolate_run(
+Verdict isolate_run(
     const std::string& box_id,
     const std::string& binary_file,
     const std::string& input_file
@@ -61,7 +61,7 @@ int isolate_run(
 
 
 //Isolate cleanup
-int isolate_cleanup(const std::string& boxid) {
+Verdict isolate_cleanup(const std::string& boxid) {
     std::string box_init = "--box-id=" + boxid;
     std::vector<char*> args = {
         (char*)"isolate",
@@ -80,25 +80,25 @@ int isolate_cleanup(const std::string& boxid) {
 
 
 //metadata verdict
-int metadata_verdict(const std::string& metadata_file_path) {
+Verdict metadata_verdict(const std::string& metadata_file_path) {
     exitsig.clear();
     std::ifstream file(metadata_file_path); 
     if(!file.is_open()) {
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     }
     std::string key, value, status;
     int exitcode = 0;
     while (std::getline(file, key, ':') && std::getline(file, value)) {
-        if(key == "cg-oom-killed") return MLE;
+        if(key == "cg-oom-killed") return Verdict::MLE;
         else if(key == "status") status = value;
         else if(key == "exitsig") exitsig = value;
         else if(key == "exitcode") exitcode = std::stoi(value);
     }
     if(exitcode) {
         exitsig = std::to_string(-exitcode);
-        return RUNTIME_ERROR;
+        return Verdict::RUNTIME_ERROR;
     }
-    if(!exitsig.empty()) return RUNTIME_ERROR;
-    if(status == "TO") return TLE; 
-    return 0;
+    if(!exitsig.empty()) return Verdict::RUNTIME_ERROR;
+    if(status == "TO") return Verdict::TLE; 
+    return Verdict::SUCCESS;
 }

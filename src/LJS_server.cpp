@@ -4,9 +4,10 @@
 #include "../include/socket.hpp"
 #include "../include/threadpool.hpp"
 #include "../include/judge.hpp"
+#include "../include/verdict.hpp"
 
 void new_connection(int cfd, uid_t client_uid) {
-    if(send_client(cfd, "\033[36mJudging...\033[0m\n") == -1) return;
+    if(send_client(cfd, "\033[36mJudging...\033[0m\n") == Verdict::FAILURE) return;
     char buf[MAXDATASIZE+1];
     int bytes_read;
     std::string msg;

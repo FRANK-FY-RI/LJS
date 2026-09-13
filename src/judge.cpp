@@ -46,7 +46,7 @@ std::optional<std::string> resolve_source(
 }
 
 //judge function
-int judge(
+Verdict judge(
     int cfd,
     const std::string& binary_file,
     const std::string& binary_file_path,
@@ -57,34 +57,34 @@ int judge(
     
     //Initialize the sandbox
     Isolate_Init_status isolate_init_status = isolate_init();
-    if(isolate_init_status.status) {
+    if(isolate_init_status.status != Verdict::SUCCESS) {
         send_client(cfd, "Unable to Initialize a new sandbox\n");
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     }
 
     //Populate the sandbox
     //copy the binary into the sandbox
-    if(copy_file(binary_file_path, isolate_init_status.box_path)) {
+    if(copy_file(binary_file_path, isolate_init_status.box_path) != Verdict::SUCCESS) {
         send_client(cfd, "Unable to copy binary file into the sandbox\n");
-        if(isolate_cleanup(isolate_init_status.box_id)) {
+        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
             send_client(cfd, "Unable to delete the sandbox\n");
         }
-        return PROCESS_ERROR;    
+        return Verdict::PROCESS_ERROR;    
     }
     //copy the input file into the sandbox
-    if(copy_file(input_file_path, isolate_init_status.box_path)) {
+    if(copy_file(input_file_path, isolate_init_status.box_path) != Verdict::SUCCESS) {
         send_client(cfd, "Unable to copy input file into the sandbox\n");
-        if(isolate_cleanup(isolate_init_status.box_id)) {
+        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
             send_client(cfd, "Unable to delete the sandbox\n");
         }
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     }
  
     //run
     auto isolate_run_status = isolate_run(isolate_init_status.box_id, binary_file, input_file);
-    if(isolate_run_status == CHILD_PROCESS_ERROR) {
+    if(isolate_run_status == Verdict::CHILD_PROCESS_ERROR) {
         send_client(cfd, "Unable to run the sandbox\n");
-        if(isolate_cleanup(isolate_init_status.box_id)) {
+        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
             send_client(cfd, "Unable to delete the sandbox\n");
         } 
         return isolate_run_status;
@@ -95,87 +95,73 @@ int judge(
     std::string metadata_file_path = temp_dir + metadata_file;
     auto metadata_status = metadata_verdict(metadata_file_path);
     rm(metadata_file_path);
-    if(metadata_status == PROCESS_ERROR) {
+    if(metadata_status == Verdict::PROCESS_ERROR) {
         send_client(cfd, "Unable to open metadata file\n");
-        if(isolate_cleanup(isolate_init_status.box_id)) {
+        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
             send_client(cfd, "Unable to delete the sandbox\n");
         }
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     }
-    if(metadata_status) {
+
+    //send the error to the client
+    if(metadata_status != Verdict::SUCCESS) {
         const std::string error_file = (std::string)"err" + isolate_init_status.box_id + ".err"; 
-        const std::string error_file_path = temp_dir + error_file;
-        if(copy_file(
-            isolate_init_status.box_path + error_file,
-            temp_dir
-        )) {
-            send_client(cfd, "Unable to copy error file\n"); 
-        }
-
-        if(isolate_cleanup(isolate_init_status.box_id)) {
-            send_client(cfd, "Unable to delete the sandbox\n");
-        }   
-
+        const std::string error_file_path = isolate_init_status.box_path + error_file;
+ 
         {
             std::ifstream file(error_file_path);
             if(!file) return metadata_status;
             std::string content(
-                (std::istreambuf_iterator<char>(file)),
-                std::istreambuf_iterator<char>()
-            );
+                    (std::istreambuf_iterator<char>(file)),
+                    std::istreambuf_iterator<char>()
+                    );
 
             if (!content.empty()) {
                 send_client(cfd, content);
             }
         }
-        rm(error_file_path);
+
+        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
+            send_client(cfd, "Unable to delete the sandbox\n");
+        }   
+
         return metadata_status;
     }
 
     //copy the output file into temporary directory
     const std::string output_file = (std::string)"out" + isolate_init_status.box_id + ".txt";
-    const std::string output_file_path = temp_dir + output_file;
-    if(copy_file(
-        isolate_init_status.box_path + output_file,
-        temp_dir
-    )) {
-        send_client(cfd, "Unable to copy output file\n");
-        if(isolate_cleanup(isolate_init_status.box_id)) {
-            send_client(cfd, "Unable to delete the sandbox\n");
-        }   
-        return PROCESS_ERROR;
-    } 
+    const std::string output_file_path = isolate_init_status.box_path + output_file; 
 
     //check the output and answer  
     auto diff_status = diff(answer_file_path, output_file_path); 
-    rm(output_file_path); 
-    if(isolate_cleanup(isolate_init_status.box_id)) {
+
+    if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
         send_client(cfd, "Unable to delete the sandbox\n");
     }
-    if(diff_status == PROCESS_ERROR) {
+    if(diff_status == Verdict::PROCESS_ERROR) {
         send_client(cfd, "Unable to open output or answer files\n");
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     } 
-    else if(diff_status == 0) return AC;
-    return WA;
+    else if(diff_status == Verdict::SUCCESS) return Verdict::AC;
+    return Verdict::WA;
 }
 
 
 
 //run function
-int runfn(int cfd, const std::string& tc_path, const std::string& code) {
+Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
     
     //compile
     auto compile_status = compile(cfd, code.c_str());
-    if(compile_status.status == CHILD_PROCESS_ERROR) {
+    if(compile_status.status == Verdict::CHILD_PROCESS_ERROR) {
         send_client(cfd, "Unable to spawn new process: g++\n");
-        return CHILD_PROCESS_ERROR;
+        return Verdict::CHILD_PROCESS_ERROR;
     } 
-    else if(compile_status.status == TLE) {
+    else if(compile_status.status == Verdict::TLE) {
         send_client(cfd, "Compilation Time Limit Exceeded\n");
-        return TLE;
+        return Verdict::TLE;
     }
-    else if(compile_status.status) {
+    else if(compile_status.status != Verdict::SUCCESS) {
         send_client(cfd, "Compilation error\n");
         return compile_status.status;
     }          
@@ -213,18 +199,18 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
 
             send_client(cfd, verdict);
             rm(compile_status.binary_path);
-            if(ac == (i-1)) return AC;
-            return WA;
+            if(ac == (i-1)) return Verdict::AC;
+            return Verdict::WA;
         }
         if(access(answer_file_path.c_str(), F_OK) != 0) {
             std::string msg = static_cast<std::string>("Answer file ") + 
             std::to_string(i) + static_cast<std::string>(" not present\n");
-            if(send_client(cfd, msg)==-1) return PROCESS_ERROR;
+            if(send_client(cfd, msg) == Verdict::CONNECTION_ERROR) return Verdict::CONNECTION_ERROR;
             i++;
             continue;
         }
         
-        int status = judge(
+        auto status = judge(
             cfd,
             compile_status.binary,
             compile_status.binary_path,
@@ -235,34 +221,34 @@ int runfn(int cfd, const std::string& tc_path, const std::string& code) {
          
         std::string msg = static_cast<std::string>("Test ") + 
         std::to_string(i) + static_cast<std::string>(": ");
-        if(send_client(cfd, msg)==-1) {
+        if(send_client(cfd, msg) == Verdict::CONNECTION_ERROR) {
             rm(compile_status.binary_path);
-            return PROCESS_ERROR;
+            return Verdict::PROCESS_ERROR;
         }
-        if(!status) ac++;
+        if(status == Verdict::AC) ac++;
         error_msg(cfd, status); 
         i++; 
     } 
-    return 0;
+    return Verdict::SUCCESS;
 }
 
 
 //run command
-int run(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
+Verdict run(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
     auto source = resolve_source(client_cwd, argv[3], client_uid);
     if(!source) {
         send_client(cfd, "Invalid source file\n");
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     }
     return runfn(cfd, tc_path, *source);
 }
 
 
 //submit
-int submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
+Verdict submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_ex_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/";
@@ -270,13 +256,13 @@ int submit(int cfd, std::vector<std::string> &argv, const std::string& client_cw
     auto source = resolve_source(client_cwd, argv[3], client_uid);
     if(!source) {
         send_client(cfd, "Invalid source file\n");
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     }
     
     //first check if ex_tc passes
-    if(runfn(cfd, tc_ex_path, *source) != AC) {
-        if(send_client(cfd, "Example Test Case Failed\n")==-1) return PROCESS_ERROR;
-        return WA;
+    if(runfn(cfd, tc_ex_path, *source) != Verdict::AC) {
+        if(send_client(cfd, "Example Test Case Failed\n") == Verdict::CONNECTION_ERROR) return Verdict::CONNECTION_ERROR;
+        return Verdict::WA;
     } 
     return runfn(cfd, tc_path, *source);
 }

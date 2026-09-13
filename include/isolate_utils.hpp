@@ -7,6 +7,7 @@
 #include <vector>
 #include "config.hpp"
 #include "threadsafe_queue.hpp"
+#include "verdict.hpp"
 
 
 static threadsafe_queue<int> free_box_ids;
@@ -19,7 +20,7 @@ const static auto free_box_ids_queue_init = [](){
 }();
 
 struct Isolate_Init_status{
-    int status;
+    Verdict status;
     std::string box_id;
     std::string box_path;
 };
@@ -29,7 +30,7 @@ Isolate_Init_status isolate_init();
 
 
 //Isolate Runner
-int isolate_run(
+Verdict isolate_run(
     const std::string& box_id,
     const std::string& binary_file,
     const std::string& input_file
@@ -37,11 +38,11 @@ int isolate_run(
 
 
 //Isolate Cleaner
-int isolate_cleanup(const std::string& boxid);
+Verdict isolate_cleanup(const std::string& boxid);
 
 
 //Metadata Parser
-int metadata_verdict(const std::string& metadata_file_path);
+Verdict metadata_verdict(const std::string& metadata_file_path);
 
 
 

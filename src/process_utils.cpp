@@ -1,8 +1,9 @@
 #include "../include/process_utils.hpp"
+#include <cstdlib>
 
 
 //function to start a new process
-int new_process(
+Verdict new_process(
     const char* path,
     char *args[],
     const int input_fd,
@@ -15,7 +16,7 @@ int new_process(
     pid_t pid = fork();
 
     if(pid == -1) {
-        return CHILD_PROCESS_ERROR;
+        return Verdict::CHILD_PROCESS_ERROR;
     }
 
     if(pid == 0) {
@@ -46,7 +47,7 @@ int new_process(
         }
 
         execv(path, args);
-        _exit(CHILD_PROCESS_ERROR);
+        _exit(1);
     }
 
     /*
@@ -65,17 +66,18 @@ int new_process(
             kill(-pid, SIGKILL);
             waitpid(pid, &status, 0);
 
-            return TLE;
+            return Verdict::TLE;
         } 
 
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     } 
 
     if(WIFEXITED(status)) {
-        return WEXITSTATUS(status);
+        if(!WEXITSTATUS(status)) return Verdict::SUCCESS;
+        return Verdict::FAILURE;
     }
 
-    return CHILD_PROCESS_ERROR;
+    return Verdict::CHILD_PROCESS_ERROR;
 }
 
 
@@ -106,9 +108,9 @@ Compile_Status compile(int cfd, const char *code) {
 
 
 //Compare files
-int diff(const std::string& file1_path, const std::string& file2_path) {
+Verdict diff(const std::string& file1_path, const std::string& file2_path) {
     std::ifstream file1(file1_path), file2(file2_path);
-    if(!file1 || !file2) return PROCESS_ERROR;
+    if(!file1 || !file2) return Verdict::PROCESS_ERROR;
     std::string s1, s2, temp;
     auto rtrim = [](std::string& s) {
         while(!s.empty() && !std::isgraph(s.back())) s.pop_back();
@@ -116,19 +118,19 @@ int diff(const std::string& file1_path, const std::string& file2_path) {
     while(true) {
         bool ch1 = static_cast<bool>(std::getline(file1, s1));
         bool ch2 = static_cast<bool>(std::getline(file2, s2));
-        if(ch1 != ch2) return 1;
-        else if(!ch1) return 0;
+        if(ch1 != ch2) return Verdict::FAILURE;
+        else if(!ch1) return Verdict::SUCCESS;
 
         rtrim(s1);
         rtrim(s2);
-        if(s1 != s2) return 1;
+        if(s1 != s2) return Verdict::FAILURE;
     } 
-    return 0;
+    return Verdict::SUCCESS;
 }
 
 
 //copy file
-int copy_file(const std::string& source_file_path, const std::string& dest_dir) {
+Verdict copy_file(const std::string& source_file_path, const std::string& dest_dir) {
     namespace fs = std::filesystem;
     try {
         fs::copy_file(
@@ -138,7 +140,7 @@ int copy_file(const std::string& source_file_path, const std::string& dest_dir) 
         );
     }
     catch (const fs::filesystem_error& e) {
-        return PROCESS_ERROR;
+        return Verdict::PROCESS_ERROR;
     }
-    return 0;
+    return Verdict::SUCCESS;
 }

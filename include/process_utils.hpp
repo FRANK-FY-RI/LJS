@@ -11,16 +11,7 @@
 #include <thread>
 #include <filesystem>
 #include "config.hpp"
-
-
-
-#define AC 0
-#define WA 1
-#define RUNTIME_ERROR 2
-#define TLE 3
-#define MLE 4
-#define CHILD_PROCESS_ERROR 5
-#define PROCESS_ERROR 6
+#include "verdict.hpp"
 
 
 inline thread_local std::string exitsig;
@@ -56,7 +47,7 @@ constexpr ProcessLimits COMPILE_LIMITS{
 
 // Compile Status
 struct Compile_Status {
-    int status;
+    Verdict status;
     std::string binary;
     std::string binary_path;
 };
@@ -86,7 +77,7 @@ inline void set_limits(const ProcessLimits& limits) {
 
 
 //fucntion to start a new process
-int new_process(
+Verdict new_process(
     const char* path,
     char *args[],
     const int input_fd,
@@ -101,16 +92,17 @@ Compile_Status compile(int cfd, const char *code);
 
 
 //delete a file
-inline int rm(const std::string& path) {
-    return unlink(path.c_str()); 
+inline Verdict rm(const std::string& path) {
+    if(unlink(path.c_str())) return Verdict::FAILURE;
+    return Verdict::SUCCESS;
 }
 
 
 //file compare
-int diff(const std::string& file1_path, const std::string& file2_path);
+Verdict diff(const std::string& file1_path, const std::string& file2_path);
 
 
 //copy file
-int copy_file(const std::string& source_file_path, const std::string& dest_dir);
+Verdict copy_file(const std::string& source_file_path, const std::string& dest_dir);
 
 #endif
