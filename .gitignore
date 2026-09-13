@@ -7,3 +7,5 @@ a.out
 fact*
 compiler_bomb.cpp
 *.o
+test*.cpp
+tests/Stress_test_list.md
