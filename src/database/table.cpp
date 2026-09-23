@@ -10,7 +10,6 @@ Table::Table(const std::string& database_name, const std::string& tname) : table
     const std::string stmt = "PRAGMA table_info(" + table_name + ")";
     if(sqlite3_prepare_v2(db.handle(), stmt.c_str(), -1, &sql, nullptr) != SQLITE_OK) {
         const std::string errmsg = sqlite3_errmsg(db.handle());
-        sqlite3_close(db.handle());
         throw std::runtime_error(
                 "Unable to inspect table " + 
                 table_name + ": " + errmsg
@@ -27,7 +26,6 @@ void Table::display_table() const {
     sqlite3_stmt *sql = nullptr;
     if(sqlite3_prepare_v2(db.handle(), stmt.c_str(), -1, &sql, nullptr) != SQLITE_OK) {
         const std::string errmsg = sqlite3_errmsg(db.handle());
-        sqlite3_close(db.handle());
         throw std::runtime_error(
                 "Unable to prepare SELECT statement on table " + 
                 table_name + ": " + errmsg
