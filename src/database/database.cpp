@@ -46,7 +46,9 @@ void Table::display_table() const {
         records++;
         for(int i = 0; i<column_size; i++) {
             if(i) std::cout<<" | ";
-            std::cout<<sqlite3_column_text(sql, i);
+            const unsigned char *text = sqlite3_column_text(sql, i);
+            if(text) std::cout<<text;
+            else std::cout<<"NULL";
         }
         std::cout<<'\n';
     }
