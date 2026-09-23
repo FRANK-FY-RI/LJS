@@ -1,4 +1,9 @@
 #include "database.hpp"
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <stdexcept>
+#include <fstream>
 
 //Constructor
 Database::Database(const std::string& database_name) {
@@ -19,4 +24,13 @@ Database::~Database() {
 //Get Handle
 sqlite3* Database::handle() const {
     return Database::db;
+}
+
+int Database::schema_init(const std::string& file_path) {
+    std::ifstream file(file_path); 
+    if(!file) return 1;
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    if(sqlite3_exec(db, buffer.str().c_str(), nullptr, nullptr, nullptr) != SQLITE_OK) return 1;
+    return 0;
 }

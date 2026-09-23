@@ -1,11 +1,11 @@
 #include "table.hpp"
+#include "../../third_party/sqlite3/sqlite3.h"
+#include <stdexcept>
+#include <iostream>
 #include <stdexcept>
 
 //Constructor
-Table::Table(const std::string& database_name, const std::string& tname) : table_name(tname), db(database_name) { 
-    if(!db.handle()) {
-        throw std::runtime_error("Invalid database: " + database_name);
-    }
+Table::Table(const Database& database_name, const std::string& tname) : table_name(tname), db(database_name) {  
     sqlite3_stmt *sql = nullptr;
     const std::string stmt = "PRAGMA table_info(" + table_name + ")";
     if(sqlite3_prepare_v2(db.handle(), stmt.c_str(), -1, &sql, nullptr) != SQLITE_OK) {

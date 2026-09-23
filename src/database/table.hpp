@@ -2,21 +2,18 @@
 #define __TABLE__HPP
 
 
-#include "../../third_party/sqlite3/sqlite3.h"
 #include "database.hpp"
 #include <string>
-#include <iostream>
 #include <vector>
-#include <stdexcept>
 
 class Table {
-    Database& db;
-    std::string table_name;
+    const Database& db;
+    const std::string table_name;
     int column_size = 0;
 public:
 
     //Constructor creates a new database or connects to an existing one if already exists
-    Table(const std::string& database_name, const std::string& tname); 
+    Table(const Database& database_name, const std::string& tname); 
 
     //For simplicity, delete copy and move constructors
     Table(const Table&)=delete;
