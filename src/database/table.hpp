@@ -10,7 +10,7 @@
 #include <stdexcept>
 
 class Table {
-    Database db;
+    Database& db;
     std::string table_name;
     int column_size = 0;
 public:
