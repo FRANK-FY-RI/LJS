@@ -194,6 +194,7 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
     
     int i = 1;
     int ac = 0;
+    Verdict final_verdict = Verdict::AC;
     while(true) {
         std::string input_file = std::to_string(i) + ".in";
         std::string input_file_path = tc_path + input_file;
@@ -225,8 +226,7 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
 
             send_client(cfd, verdict);
             rm(compile_status.binary_path);
-            if(ac == (i-1)) return Verdict::AC;
-            return Verdict::WA;
+            return final_verdict; 
         }
         if(access(answer_file_path.c_str(), F_OK) != 0) {
             std::string msg = static_cast<std::string>("Answer file ") + 
@@ -252,6 +252,7 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
             return Verdict::PROCESS_ERROR;
         }
         if(status == Verdict::AC) ac++;
+        else if(final_verdict == Verdict::AC) final_verdict = status; 
         error_msg(cfd, status); 
         i++; 
     } 
@@ -293,7 +294,7 @@ Verdict submit(ClientContext& client, std::vector<std::string> &argv, const LJSd
     std::stringstream buffer;
     buffer << user_code.rdbuf();
     const std::string code_id = hash(buffer.str());
-    database.submissions.insert_row({std::to_string(client.cfd), client.username, code_id, "AC"});
+    database.submissions.insert_row({std::to_string(client.cfd), client.username, code_id, verdict_to_string(verdict)});
     database.codes.insert_row({code_id, *source});
     return verdict;
 }
