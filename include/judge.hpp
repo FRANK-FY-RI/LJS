@@ -10,6 +10,21 @@
 #include <sys/stat.h>
 #include <filesystem>
 #include <optional>
+#include "../src/database/database.hpp"
+#include "../src/database/table.hpp"
+
+
+
+struct LJSdatabase {
+    const Database& db;
+    const Table submissions;
+    const Table codes;
+    LJSdatabase(const Database& database, const std::string& sub, const std::string& cod) : 
+        db(database),
+        submissions(db, sub),
+        codes(db, cod)
+    {}
+};
 
 
 
@@ -85,7 +100,8 @@ Verdict run(
 Verdict submit(
     int cfd,
     std::vector<std::string> &argv,
-    const std::string& client_cwd, uid_t client_uid
+    const std::string& client_cwd, uid_t client_uid,
+    const LJSdatabase& database
 );
 
 

@@ -6,7 +6,8 @@
 #include "../include/judge.hpp"
 #include "../include/verdict.hpp"
 
-void new_connection(int cfd, uid_t client_uid) {
+
+void new_connection(int cfd, uid_t client_uid, const LJSdatabase& database) {
     if(send_client(cfd, "\033[36mJudging...\033[0m\n") == Verdict::FAILURE) return;
     char buf[MAXDATASIZE+1];
     int bytes_read;
@@ -50,7 +51,7 @@ void new_connection(int cfd, uid_t client_uid) {
         run(cfd, argv, client_cwd, client_uid);
     }
     else if(cmd == "submit") {
-        submit(cfd, argv, client_cwd, client_uid);
+        submit(cfd, argv, client_cwd, client_uid, database);
     }
     else {
         std::cout << "options are:\n";
@@ -101,6 +102,13 @@ int main() {
 
     std::cout<<"waiting for connections...\n";
 
+    Database db(database_dir + "LJS.db");
+    if(db.schema_init(database_dir + "db_schema.sql")) {
+        std::cerr<<"Unable to initialize the schema\n";
+        return 1;
+    }
+    const LJSdatabase database(db, "submissions", "codes");
+
     while(true) {
         int cfd;
         if((cfd = accept(sfd, nullptr, 0)) == -1) {
@@ -131,7 +139,7 @@ int main() {
 
         send_client(cfd, "\033[36mIn queue...\033[0m\n");
 
-        pool.submit([=](){new_connection(cfd, client_uid);});
+        pool.submit([=, &database](){new_connection(cfd, client_uid, database);});
     } 
 
     return 0;

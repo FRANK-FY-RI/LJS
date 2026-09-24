@@ -46,6 +46,9 @@ const std::string temp_dir = "/tmp/";
 // Problem Directory
 const std::string prob_dir = "/home/frank/sb/";
 
+//Address of database
+const std::string database_dir = "/home/frank/projects/LJS/src/database/";
+
 // Maximum length of path
 constexpr size_t MAX_PATH = 10000;
 

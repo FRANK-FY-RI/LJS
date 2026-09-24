@@ -10,3 +10,5 @@ compiler_bomb.cpp
 test*.cpp
 tests/Stress_test_list.md
 sqlite_test/
+show_table*
+LJS.db

@@ -1,4 +1,5 @@
 #include "../include/judge.hpp"
+#include <string>
 
 
 // check source code from client's directory
@@ -248,7 +249,7 @@ Verdict run(int cfd, std::vector<std::string> &argv, const std::string& client_c
 
 
 //submit
-Verdict submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
+Verdict submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid, const LJSdatabase& database) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_ex_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/";
@@ -260,9 +261,9 @@ Verdict submit(int cfd, std::vector<std::string> &argv, const std::string& clien
     }
     
     //first check if ex_tc passes
-    if(runfn(cfd, tc_ex_path, *source) != Verdict::AC) {
-        if(send_client(cfd, "Example Test Case Failed\n") == Verdict::CONNECTION_ERROR) return Verdict::CONNECTION_ERROR;
-        return Verdict::WA;
-    } 
-    return runfn(cfd, tc_path, *source);
+    Verdict verdict = runfn(cfd, tc_ex_path, *source);
+    if(verdict == Verdict::AC) verdict = runfn(cfd, tc_path, *source); 
+    database.submissions.insert_row({std::to_string(cfd), client_cwd, "1", "AC"});
+    database.codes.insert_row({"1", *source});
+    return verdict;
 }
