@@ -3,13 +3,12 @@
 
 
 #include "process_utils.hpp"
-#include "isolate_utils.hpp"
 #include "socket.hpp"
 #include "verdict.hpp"
 #include <pwd.h>
 #include <sys/stat.h>
-#include <filesystem>
 #include <optional>
+#include <string>
 #include "../src/database/database.hpp"
 #include "../src/database/table.hpp"
 
@@ -26,6 +25,10 @@ struct LJSdatabase {
     {}
 };
 
+
+
+//Hashing Function
+std::string hash(const std::string&);
 
 
 //error message

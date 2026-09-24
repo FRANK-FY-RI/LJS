@@ -1,5 +1,10 @@
 #include "../include/judge.hpp"
+#include "../include/isolate_utils.hpp"
+#include <filesystem>
+#include <sstream>
 #include <string>
+#include <cstdint>
+#include <fstream>
 
 
 // check source code from client's directory
@@ -45,6 +50,25 @@ std::optional<std::string> resolve_source(
 
     return source.string();
 }
+
+
+//Hashing Function
+std::string hash(const std::string& source_code) {
+    constexpr uint64_t B1 = 131;
+    constexpr uint64_t B2 = 137;
+
+    uint64_t h1 = 0;
+    uint64_t h2 = 0;
+
+    for (const unsigned char c : source_code) {
+        h1 = h1 * B1 + c;
+        h2 = h2 * B2 + c;
+    }
+    
+    std::string HASH = std::to_string(h1) + std::to_string(h2);
+    return HASH;
+}
+
 
 //judge function
 Verdict judge(
@@ -263,7 +287,12 @@ Verdict submit(int cfd, std::vector<std::string> &argv, const std::string& clien
     //first check if ex_tc passes
     Verdict verdict = runfn(cfd, tc_ex_path, *source);
     if(verdict == Verdict::AC) verdict = runfn(cfd, tc_path, *source); 
-    database.submissions.insert_row({std::to_string(cfd), client_cwd, "1", "AC"});
-    database.codes.insert_row({"1", *source});
+
+    std::ifstream user_code(*source); 
+    std::stringstream buffer;
+    buffer << user_code.rdbuf();
+    const std::string code_id = hash(buffer.str());
+    database.submissions.insert_row({std::to_string(cfd), client_cwd, code_id, "AC"});
+    database.codes.insert_row({code_id, *source});
     return verdict;
 }
