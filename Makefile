@@ -8,7 +8,9 @@ CLIENT = client
 SERVER_SRC = src/LJS_server.cpp \
              src/isolate_utils.cpp \
              src/process_utils.cpp \
-             src/judge.cpp
+             src/judge.cpp \
+			 src/database/database.cpp \
+			 src/database/table.cpp
 
 CLIENT_SRC = src/LJS_client.cpp
 
