@@ -28,7 +28,7 @@ public:
 
     void display_table() const; 
 
-    int insert_row(const std::vector<std::string>& row) const; //insert_row returns 0 on success and 1 on any kind of faliure
+    int insert_row(const std::vector<std::pair<std::string, std::string>>&) const; //insert_row returns 0 on success and 1 on any kind of faliure
 
 };
 

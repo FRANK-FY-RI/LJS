@@ -310,7 +310,14 @@ Verdict submit(ClientContext& client, std::vector<std::string> &argv, const LJSd
     }
     catch(const fs::filesystem_error& e) {}
 
-    database.submissions.insert_row({std::to_string(client.cfd), client.username, code_id, verdict_to_string(verdict)});
-    database.codes.insert_row({code_id, code_storage_path});
+    database.submissions.insert_row({
+            {"user_id", client.username},
+            {"code_id", code_id},
+            {"verdict", verdict_to_string(verdict)}
+    });
+    database.codes.insert_row({
+            {"code_id", code_id},
+            {"code", code_storage_path}
+    });
     return verdict;
 }

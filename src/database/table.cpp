@@ -46,11 +46,21 @@ void Table::display_table() const {
     std::cout<<"Total No.of records: "<<records<<'\n';
 }
 
-int Table::insert_row(const std::vector<std::string>& row) const {
-    if(row.size() != column_size) return 1;
-    std::string stmt = "INSERT INTO " + table_name + " VALUES (";
-    for(size_t i = 0; i<row.size(); i++) {
-        if(i) stmt += ", ";
+int Table::insert_row(const std::vector<std::pair<std::string, std::string>>& values) const {
+
+    if(values.empty()) return 1;
+
+    std::string stmt = "INSERT INTO " + table_name + " (";
+    // Column names
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (i) stmt += ", ";
+        stmt += values[i].first;
+    }
+
+    stmt += ") VALUES (";
+    // Placeholders
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (i) stmt += ", ";
         stmt += "?";
     }
     stmt += ")";
@@ -69,11 +79,11 @@ int Table::insert_row(const std::vector<std::string>& row) const {
     }
 
     //Bind all values
-    for(size_t i = 0; i<row.size(); i++) {
+    for(size_t i = 0; i<values.size(); i++) {
         if(sqlite3_bind_text(
                     sql,
                     i+1,
-                    row[i].c_str(),
+                    values[i].second.c_str(),
                     -1,
                     SQLITE_TRANSIENT
                     ) != SQLITE_OK)
