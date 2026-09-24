@@ -14,6 +14,11 @@ Database::Database(const std::string& database_name) {
             static_cast<std::string>(sqlite3_errmsg(db))
         );
     } 
+
+    if(sqlite3_busy_timeout(db, 5000) != SQLITE_OK) {
+        sqlite3_close(db);
+        throw std::runtime_error("Unable to set SQLite busy timeout");
+    }
 }
 
 //Destructor
