@@ -9,14 +9,15 @@
 
 // check source code from client's directory
 std::optional<std::string> resolve_source(
-    const std::string& cwd,
-    const std::string& filename,
-    uid_t uid
+    ClientContext& client,
+    const std::string& filename
 ) {
-    struct passwd* pw = getpwuid(uid);
+    struct passwd* pw = getpwuid(client.uid);
 
     if (!pw)
         return std::nullopt;
+
+    client.username = pw->pw_name;
 
     std::filesystem::path home = pw->pw_dir;
 
@@ -24,7 +25,7 @@ std::optional<std::string> resolve_source(
 
     std::filesystem::path source =
         std::filesystem::weakly_canonical(
-            std::filesystem::path(cwd) / filename,
+            std::filesystem::path(client.cwd) / filename,
             ec
         );
 
@@ -45,7 +46,7 @@ std::optional<std::string> resolve_source(
     if (stat(source.c_str(), &st) == -1)
         return std::nullopt;
 
-    if (st.st_uid != uid)
+    if (st.st_uid != client.uid)
         return std::nullopt;
 
     return source.string();
@@ -259,40 +260,40 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
 
 
 //run command
-Verdict run(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid) { 
+Verdict run(ClientContext& client, std::vector<std::string> &argv) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
-    auto source = resolve_source(client_cwd, argv[3], client_uid);
+    auto source = resolve_source(client, argv[3]);
     if(!source) {
-        send_client(cfd, "Invalid source file\n");
+        send_client(client.cfd, "Invalid source file\n");
         return Verdict::PROCESS_ERROR;
     }
-    return runfn(cfd, tc_path, *source);
+    return runfn(client.cfd, tc_path, *source);
 }
 
 
 //submit
-Verdict submit(int cfd, std::vector<std::string> &argv, const std::string& client_cwd, uid_t client_uid, const LJSdatabase& database) { 
+Verdict submit(ClientContext& client, std::vector<std::string> &argv, const LJSdatabase& database) { 
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_ex_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/";
     std::string tc_path = prob_dir + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
-    auto source = resolve_source(client_cwd, argv[3], client_uid);
+    auto source = resolve_source(client, argv[3]);
     if(!source) {
-        send_client(cfd, "Invalid source file\n");
+        send_client(client.cfd, "Invalid source file\n");
         return Verdict::PROCESS_ERROR;
     }
     
     //first check if ex_tc passes
-    Verdict verdict = runfn(cfd, tc_ex_path, *source);
-    if(verdict == Verdict::AC) verdict = runfn(cfd, tc_path, *source); 
+    Verdict verdict = runfn(client.cfd, tc_ex_path, *source);
+    if(verdict == Verdict::AC) verdict = runfn(client.cfd, tc_path, *source); 
 
     std::ifstream user_code(*source); 
     std::stringstream buffer;
     buffer << user_code.rdbuf();
     const std::string code_id = hash(buffer.str());
-    database.submissions.insert_row({std::to_string(cfd), client_cwd, code_id, "AC"});
+    database.submissions.insert_row({std::to_string(client.cfd), client.username, code_id, "AC"});
     database.codes.insert_row({code_id, *source});
     return verdict;
 }

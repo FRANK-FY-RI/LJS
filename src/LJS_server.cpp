@@ -7,29 +7,28 @@
 #include "../include/verdict.hpp"
 
 
-void new_connection(int cfd, uid_t client_uid, const LJSdatabase& database) {
-    if(send_client(cfd, "\033[36mJudging...\033[0m\n") == Verdict::FAILURE) return;
+void new_connection(ClientContext client, const LJSdatabase& database) {
+    if(send_client(client.cfd, "\033[36mJudging...\033[0m\n") == Verdict::FAILURE) return;
     char buf[MAXDATASIZE+1];
     int bytes_read;
     std::string msg;
-    while((bytes_read = recv(cfd, buf, MAXDATASIZE, 0)) > 0) {
+    while((bytes_read = recv(client.cfd, buf, MAXDATASIZE, 0)) > 0) {
         buf[bytes_read] = '\0';
         msg += buf;
     }
     if(bytes_read == -1) {
         perror("recv");
-        close(cfd);
+        close(client.cfd);
         return;
     }
 
     std::string temp;
     std::vector<std::string> argv;
     bool got_cwd = true;
-    std::string client_cwd;
     for(auto it:msg) {
         if(it == '\n') {
             if(got_cwd) {
-                client_cwd = temp;
+                client.cwd = temp;
                 got_cwd = false;
             }
             else argv.emplace_back(temp);
@@ -39,19 +38,19 @@ void new_connection(int cfd, uid_t client_uid, const LJSdatabase& database) {
     }
 
     if(argv.size() != 4) {
-        send_client(cfd, "Incorrect Number of Arguments\n");
+        send_client(client.cfd, "Incorrect Number of Arguments\n");
         std::cout<<"Connection Ended\n";
-        close(cfd);
+        close(client.cfd);
         return;
     }
 
     std::string cmd = argv[0];
  
     if(cmd == "run") {
-        run(cfd, argv, client_cwd, client_uid);
+        run(client, argv);
     }
     else if(cmd == "submit") {
-        submit(cfd, argv, client_cwd, client_uid, database);
+        submit(client, argv, database);
     }
     else {
         std::cout << "options are:\n";
@@ -59,7 +58,7 @@ void new_connection(int cfd, uid_t client_uid, const LJSdatabase& database) {
         std::cout << "    submit\n";
     }
     std::cout<<"Connection Ended\n";
-    close(cfd);
+    close(client.cfd);
 }
 
 
@@ -109,12 +108,16 @@ int main() {
     }
     const LJSdatabase database(db, "submissions", "codes");
 
+    ClientContext client;
+
     while(true) {
         int cfd;
         if((cfd = accept(sfd, nullptr, 0)) == -1) {
             perror("server: accept");
             continue;
         }
+
+        client.cfd = cfd;
 
         struct ucred cred;
         socklen_t len = sizeof(cred);
@@ -133,13 +136,14 @@ int main() {
         }
 
         pid_t client_pid = cred.pid;
-        uid_t client_uid = cred.uid;
+
+        client.uid = cred.uid;
 
         std::cout<<"Connection Established with pid " <<client_pid<<'\n';
 
         send_client(cfd, "\033[36mIn queue...\033[0m\n");
 
-        pool.submit([=, &database](){new_connection(cfd, client_uid, database);});
+        pool.submit([client, &database](){new_connection(client, database);});
     } 
 
     return 0;

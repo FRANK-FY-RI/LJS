@@ -8,13 +8,13 @@ import concurrent.futures
 import uuid
 from typing import List, Union
 
-LJS_CLIENT = "./client"
+LJS_CLIENT = "../client"
 TEMP_DIR = "/tmp/"
 ISOLATE_DIR = "/var/local/lib/isolate/"
 SV_SOCK_ADDR = "/tmp/sv_sock_addr"
 
 # Safely bounded payloads targeting specific limits
-with open("sol.cpp", "r") as f:
+with open("../sol.cpp", "r") as f:
     ac_code = f.read()
 PAYLOADS = {
     "AC": ac_code,

@@ -13,6 +13,14 @@
 #include "../src/database/table.hpp"
 
 
+struct ClientContext {
+    int cfd;
+    uid_t uid;
+    std::string username;
+    std::string cwd;
+};
+
+
 
 struct LJSdatabase {
     const Database& db;
@@ -70,9 +78,8 @@ inline void error_msg(int cfd, Verdict status) {
 
 // check source code from client's directory
 std::optional<std::string> resolve_source(
-    const std::string& cwd,
-    const std::string& filename,
-    uid_t uid
+    ClientContext& client,
+    const std::string& filename
 );
 
 //judge function
@@ -93,17 +100,15 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code);
 
 //run command
 Verdict run(
-    int cfd,
-    std::vector<std::string> &argv,
-    const std::string& client_cwd, uid_t client_uid
+    ClientContext& client,
+    std::vector<std::string> &argv
 ); 
 
 
 //submit
 Verdict submit(
-    int cfd,
+    ClientContext& client,
     std::vector<std::string> &argv,
-    const std::string& client_cwd, uid_t client_uid,
     const LJSdatabase& database
 );
 
