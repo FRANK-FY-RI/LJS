@@ -26,7 +26,7 @@ sqlite3* Database::handle() const {
     return Database::db;
 }
 
-int Database::schema_init(const std::string& file_path) {
+int Database::schema_init(const std::string& file_path) const {
     std::ifstream file(file_path); 
     if(!file) return 1;
     std::stringstream buffer;

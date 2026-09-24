@@ -9,7 +9,7 @@
 class Table {
     const Database& db;
     const std::string table_name;
-    int column_size = 0;
+    size_t column_size = 0;
 public:
 
     //Constructor creates a new database or connects to an existing one if already exists
@@ -28,7 +28,7 @@ public:
 
     void display_table() const; 
 
-    int insert_row(const std::vector<std::string>& row); //insert_row returns 0 on success and 1 on any kind of faliure
+    int insert_row(const std::vector<std::string>& row) const; //insert_row returns 0 on success and 1 on any kind of faliure
 
 };
 

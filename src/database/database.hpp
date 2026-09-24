@@ -30,7 +30,7 @@ public:
     Takes schema file(.sql) path and initializes the schema
     Returns 0 on success and 1 otherwise
     */
-    int schema_init(const std::string& file_path);
+    int schema_init(const std::string& file_path) const;
 };
 
 #endif
