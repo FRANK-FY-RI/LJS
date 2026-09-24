@@ -294,7 +294,23 @@ Verdict submit(ClientContext& client, std::vector<std::string> &argv, const LJSd
     std::stringstream buffer;
     buffer << user_code.rdbuf();
     const std::string code_id = hash(buffer.str());
+
+    namespace fs = std::filesystem;
+    fs::path source_fs(*source);
+    const std::string code_storage_path = persistent_code_dir + code_id + ".cpp";
+    fs::path destination_fs(code_storage_path);
+
+    try {
+        fs::create_directories(destination_fs.parent_path());
+        fs::copy_file(
+            *source,
+            code_storage_path,
+            fs::copy_options::overwrite_existing
+        );
+    }
+    catch(const fs::filesystem_error& e) {}
+
     database.submissions.insert_row({std::to_string(client.cfd), client.username, code_id, verdict_to_string(verdict)});
-    database.codes.insert_row({code_id, *source});
+    database.codes.insert_row({code_id, code_storage_path});
     return verdict;
 }
