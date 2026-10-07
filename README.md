@@ -168,3 +168,9 @@ The long-term goal of LJS is to evolve into a fully scalable programming lab pla
 - Live monitoring and analytics
 - Plagiarism Detector
 - Integrated feedback mechanisms to aid the learning journey of students.
+
+## License
+
+LJS is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+Copyright (c) 2026 Omkar Singh
