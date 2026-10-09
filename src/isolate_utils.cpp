@@ -1,14 +1,38 @@
 #include "../include/isolate_utils.hpp"
+#include "../include/process_utils.hpp"
+#include "../include/config.hpp"
+#include <mutex>
+#include <vector>
 
+
+// Definitions of static data members
+threadsafe_queue<int> Isolate::free_box_ids;
+std::once_flag Isolate::free_box_ids_init_flag;
+
+
+// Destructor
+Isolate::~Isolate() {
+    isolate_cleanup();
+}
+
+// Free box IDs queue Init
+void Isolate::init_free_box_ids() {
+    std::call_once(free_box_ids_init_flag, [](){
+        for(int i = 0; i<1000; i++) {
+            free_box_ids.push(i);
+        }
+    });
+};
 
 // Isolate Init
-Isolate_Init_status isolate_init() {
-    Isolate_Init_status status;
+Verdict Isolate::isolate_init() {
+    init_free_box_ids();
+    Verdict status;
     int curr_box;
     free_box_ids.wait_and_pop(curr_box);
-    status.box_id = std::to_string(curr_box);
-    status.box_path = "/var/local/lib/isolate/" + status.box_id + "/box/";
-    std::string box_id_init_arg = (std::string)"--box-id=" + status.box_id;
+    box_id = std::to_string(curr_box);
+    box_path = "/var/local/lib/isolate/" + box_id + "/box/";
+    std::string box_id_init_arg = (std::string)"--box-id=" + box_id;
     
     //Initialize the box
     std::vector<char*> init_args = {
@@ -18,14 +42,14 @@ Isolate_Init_status isolate_init() {
         const_cast<char*>(box_id_init_arg.c_str()),
         NULL
     }; 
-    status.status = new_process("/usr/local/bin/isolate", init_args.data(), -1, STDOUT_FILENO, STDERR_FILENO);
+    status = new_process("/usr/local/bin/isolate", init_args.data(), -1, STDOUT_FILENO, STDERR_FILENO);
+    if(status == Verdict::SUCCESS) is_active = true;
     return status;
 }
 
 
 //Isolate run
-Verdict isolate_run(
-    const std::string& box_id,
+Verdict Isolate::isolate_run(
     const std::string& binary_file,
     const std::string& input_file
 ) { 
@@ -61,8 +85,8 @@ Verdict isolate_run(
 
 
 //Isolate cleanup
-Verdict isolate_cleanup(const std::string& boxid) {
-    std::string box_init = "--box-id=" + boxid;
+Verdict Isolate::isolate_cleanup() {
+    std::string box_init = "--box-id=" + box_id;
     std::vector<char*> args = {
         (char*)"isolate",
         (char*)"--cleanup",
@@ -70,7 +94,7 @@ Verdict isolate_cleanup(const std::string& boxid) {
         const_cast<char*>(box_init.c_str()),
         NULL
     };
-    free_box_ids.push(std::stoi(boxid));
+    free_box_ids.push(std::stoi(box_id));
     return new_process(
         "/usr/local/bin/isolate",
         args.data(), -1, STDOUT_FILENO, STDERR_FILENO
@@ -80,7 +104,7 @@ Verdict isolate_cleanup(const std::string& boxid) {
 
 
 //metadata verdict
-Verdict metadata_verdict(const std::string& metadata_file_path) {
+Verdict Isolate::metadata_verdict(const std::string& metadata_file_path) {
     exitsig.clear();
     std::ifstream file(metadata_file_path); 
     if(!file.is_open()) {

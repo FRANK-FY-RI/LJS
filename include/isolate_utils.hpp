@@ -1,48 +1,59 @@
 #ifndef __ISOLATE_UTILS_HPP
 #define __ISOLATE_UTILS_HPP
 
-#include "process_utils.hpp"
 #include <string>
-#include <atomic>
-#include <vector>
-#include "config.hpp"
 #include "threadsafe_queue.hpp"
 #include "verdict.hpp"
 
 
-static threadsafe_queue<int> free_box_ids;
 
-const static auto free_box_ids_queue_init = [](){
-    for(int i = 0; i<1000; i++) {
-        free_box_ids.push(i);
-    }
-    return 0;
-}();
 
-struct Isolate_Init_status{
-    Verdict status;
+class Isolate {
+    bool is_active;
+
+    static threadsafe_queue<int> free_box_ids;
+    static std::once_flag free_box_ids_init_flag;
+    static void init_free_box_ids();
+
+    //Isolate Cleaner
+    Verdict isolate_cleanup();
+
+public: 
     std::string box_id;
     std::string box_path;
+
+    //Constructor
+    Isolate() : is_active(false) {}
+
+    //Delete Copy Constructor and Copy Assignment operator
+    Isolate(const Isolate&)=delete;
+    Isolate& operator=(const Isolate&)=delete;
+
+    //Delete Move Constructor and Move Assignment operator
+    Isolate(Isolate&&)=delete;
+    Isolate& operator=(Isolate&&)=delete;
+
+    //Destructor
+    ~Isolate();
+
+    //Isolate sandbox Initialization
+    Verdict isolate_init();
+
+
+    //Isolate Runner
+    Verdict isolate_run(
+            const std::string& binary_file,
+            const std::string& input_file
+            );
+
+
+
+
+    //Metadata Parser
+    Verdict metadata_verdict(const std::string& metadata_file_path);
+
 };
 
-//Isolate sandbox Initialization
-Isolate_Init_status isolate_init();
-
-
-//Isolate Runner
-Verdict isolate_run(
-    const std::string& box_id,
-    const std::string& binary_file,
-    const std::string& input_file
-);
-
-
-//Isolate Cleaner
-Verdict isolate_cleanup(const std::string& boxid);
-
-
-//Metadata Parser
-Verdict metadata_verdict(const std::string& metadata_file_path);
 
 
 

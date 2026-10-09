@@ -82,57 +82,46 @@ Verdict judge(
 ) { 
     
     //Initialize the sandbox
-    Isolate_Init_status isolate_init_status = isolate_init();
-    if(isolate_init_status.status != Verdict::SUCCESS) {
+    Isolate sandbox;
+    Verdict isolate_init_status = sandbox.isolate_init();
+    if(isolate_init_status != Verdict::SUCCESS) {
         send_client(cfd, "Unable to Initialize a new sandbox\n");
         return Verdict::PROCESS_ERROR;
     }
 
     //Populate the sandbox
     //copy the binary into the sandbox
-    if(copy_file(binary_file_path, isolate_init_status.box_path) != Verdict::SUCCESS) {
-        send_client(cfd, "Unable to copy binary file into the sandbox\n");
-        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
-            send_client(cfd, "Unable to delete the sandbox\n");
-        }
+    if(copy_file(binary_file_path, sandbox.box_path) != Verdict::SUCCESS) {
+        send_client(cfd, "Unable to copy binary file into the sandbox\n"); 
         return Verdict::PROCESS_ERROR;    
     }
     //copy the input file into the sandbox
-    if(copy_file(input_file_path, isolate_init_status.box_path) != Verdict::SUCCESS) {
-        send_client(cfd, "Unable to copy input file into the sandbox\n");
-        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
-            send_client(cfd, "Unable to delete the sandbox\n");
-        }
+    if(copy_file(input_file_path, sandbox.box_path) != Verdict::SUCCESS) {
+        send_client(cfd, "Unable to copy input file into the sandbox\n"); 
         return Verdict::PROCESS_ERROR;
     }
  
     //run
-    auto isolate_run_status = isolate_run(isolate_init_status.box_id, binary_file, input_file);
+    auto isolate_run_status = sandbox.isolate_run(binary_file, input_file);
     if(isolate_run_status == Verdict::CHILD_PROCESS_ERROR) {
-        send_client(cfd, "Unable to run the sandbox\n");
-        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
-            send_client(cfd, "Unable to delete the sandbox\n");
-        } 
+        send_client(cfd, "Unable to run the sandbox\n"); 
         return isolate_run_status;
     }  
 
     //check the metadata verdict
-    std::string metadata_file = isolate_init_status.box_id + (std::string)".meta";
+    std::string metadata_file = sandbox.box_id + (std::string)".meta";
     std::string metadata_file_path = temp_dir + metadata_file;
-    auto metadata_status = metadata_verdict(metadata_file_path);
+    auto metadata_status = sandbox.metadata_verdict(metadata_file_path);
     rm(metadata_file_path);
     if(metadata_status == Verdict::PROCESS_ERROR) {
-        send_client(cfd, "Unable to open metadata file\n");
-        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
-            send_client(cfd, "Unable to delete the sandbox\n");
-        }
+        send_client(cfd, "Unable to open metadata file\n"); 
         return Verdict::PROCESS_ERROR;
     }
 
     //send the error to the client
     if(metadata_status != Verdict::SUCCESS) {
-        const std::string error_file = (std::string)"err" + isolate_init_status.box_id + ".err"; 
-        const std::string error_file_path = isolate_init_status.box_path + error_file;
+        const std::string error_file = (std::string)"err" + sandbox.box_id + ".err"; 
+        const std::string error_file_path = sandbox.box_path + error_file;
  
         {
             std::ifstream file(error_file_path);
@@ -145,25 +134,17 @@ Verdict judge(
             if (!content.empty()) {
                 send_client(cfd, content);
             }
-        }
-
-        if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
-            send_client(cfd, "Unable to delete the sandbox\n");
-        }   
+        }  
 
         return metadata_status;
     }
 
     //copy the output file into temporary directory
-    const std::string output_file = (std::string)"out" + isolate_init_status.box_id + ".txt";
-    const std::string output_file_path = isolate_init_status.box_path + output_file; 
+    const std::string output_file = (std::string)"out" + sandbox.box_id + ".txt";
+    const std::string output_file_path = sandbox.box_path + output_file; 
 
     //check the output and answer  
-    auto diff_status = diff(answer_file_path, output_file_path); 
-
-    if(isolate_cleanup(isolate_init_status.box_id) != Verdict::SUCCESS) {
-        send_client(cfd, "Unable to delete the sandbox\n");
-    }
+    auto diff_status = diff(answer_file_path, output_file_path);  
     if(diff_status == Verdict::PROCESS_ERROR) {
         send_client(cfd, "Unable to open output or answer files\n");
         return Verdict::PROCESS_ERROR;
