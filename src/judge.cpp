@@ -119,25 +119,7 @@ Verdict judge(
     }
 
     //send the error to the client
-    if(metadata_status != Verdict::SUCCESS) {
-        const std::string error_file = (std::string)"err" + sandbox.box_id + ".err"; 
-        const std::string error_file_path = sandbox.box_path + error_file;
- 
-        {
-            std::ifstream file(error_file_path);
-            if(!file) return metadata_status;
-            std::string content(
-                    (std::istreambuf_iterator<char>(file)),
-                    std::istreambuf_iterator<char>()
-                    );
-
-            if (!content.empty()) {
-                send_client(cfd, content);
-            }
-        }  
-
-        return metadata_status;
-    }
+    if(metadata_status != Verdict::SUCCESS) return metadata_status;
 
     //copy the output file into temporary directory
     const std::string output_file = (std::string)"out" + sandbox.box_id + ".txt";
