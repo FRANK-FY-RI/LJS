@@ -188,7 +188,15 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
         if(!file_exists) {
             std::string verdict;
 
-            if (ac == i - 1) {
+            if ((i-1) == 0) {
+                verdict =
+                    "\033[1;34m────────────────────────\033[0m\n"
+                    "\033[1;34mNo Test cases found\033[0m\n"
+                    "\033[1;34m────────────────────────\033[0m\n";
+
+                final_verdict = Verdict::PROCESS_ERROR;
+            }
+            else if (ac == i - 1) {
                 verdict =
                     "\033[1;32m────────────────────────\033[0m\n"
                     "\033[1;32m✔ Accepted — " +
