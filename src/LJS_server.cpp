@@ -37,25 +37,28 @@ void new_connection(ClientContext client, const LJSdatabase& database) {
         else temp += it;
     }
 
-    if(argv.size() != 4) {
-        send_client(client.cfd, "Incorrect Number of Arguments\n");
+    auto request_error = validate_request(argv);
+    if(request_error) {
+        send_client(client.cfd, *request_error);
         std::cout<<"Connection Ended\n";
         close(client.cfd);
         return;
     }
 
     std::string cmd = argv[0];
+    auto source = resolve_source(client, argv[3]);
+    if(!source) {
+        send_client(client.cfd, "Invalid source file\n");
+        std::cout<<"Connection Ended\n";
+        close(client.cfd);
+        return;
+    }
  
     if(cmd == "run") {
-        run(client, argv);
+        run(client, argv, *source);
     }
     else if(cmd == "submit") {
-        submit(client, argv, database);
-    }
-    else {
-        std::cout << "options are:\n";
-        std::cout << "    run\n";
-        std::cout << "    submit\n";
+        submit(client, argv, *source, database);
     }
     std::cout<<"Connection Ended\n";
     close(client.cfd);

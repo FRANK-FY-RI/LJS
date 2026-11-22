@@ -46,10 +46,35 @@ std::optional<std::string> resolve_source(
     if (stat(source.c_str(), &st) == -1)
         return std::nullopt;
 
-    if (st.st_uid != client.uid)
+    if (!S_ISREG(st.st_mode) || st.st_uid != client.uid)
         return std::nullopt;
 
     return source.string();
+}
+
+std::optional<std::string> validate_request(
+    const std::vector<std::string>& argv
+) {
+    if (argv.size() != 4)
+        return "Incorrect number of arguments. Expected: <run|submit> <lab> <problem> <source>\n";
+
+    if (argv[0] != "run" && argv[0] != "submit")
+        return "Unknown command. Use 'run' or 'submit'.\n";
+
+    const auto is_alphanumeric = [](const std::string& value) {
+        if (value.empty()) return false;
+        for (unsigned char c : value) {
+            if (!std::isalnum(c)) return false;
+        }
+        return true;
+    };
+
+    if (!is_alphanumeric(argv[1]) || !is_alphanumeric(argv[2]))
+        return "Lab and problem numbers must be nonempty alphanumeric values.\n";
+    if (argv[3].empty())
+        return "Source path must not be empty.\n";
+
+    return std::nullopt;
 }
 
 
@@ -232,49 +257,37 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
 
 
 //run command
-Verdict run(ClientContext& client, std::vector<std::string> &argv) { 
+Verdict run(ClientContext& client, const std::vector<std::string>& argv, const std::string& source) {
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/"; 
-    auto source = resolve_source(client, argv[3]);
-    if(!source) {
-        send_client(client.cfd, "Invalid source file\n");
-        return Verdict::PROCESS_ERROR;
-    }
-    return runfn(client.cfd, tc_path, *source);
+    return runfn(client.cfd, tc_path, source);
 }
 
 
 //submit
-Verdict submit(ClientContext& client, std::vector<std::string> &argv, const LJSdatabase& database) { 
+Verdict submit(ClientContext& client, const std::vector<std::string>& argv, const std::string& source, const LJSdatabase& database) {
     std::string lab = (std::string)"Lab" + argv[1];
     std::string prob = (std::string)"prob_" + argv[2]; 
     std::string tc_ex_path = prob_dir + lab + (std::string)"/Problem/" + prob + (std::string)"/";
     std::string tc_path = prob_dir + lab + (std::string)"/Hidden/" + prob + (std::string)"/"; 
-    auto source = resolve_source(client, argv[3]);
-    if(!source) {
-        send_client(client.cfd, "Invalid source file\n");
-        return Verdict::PROCESS_ERROR;
-    }
-    
     //first check if ex_tc passes
-    Verdict verdict = runfn(client.cfd, tc_ex_path, *source);
-    if(verdict == Verdict::AC) verdict = runfn(client.cfd, tc_path, *source); 
+    Verdict verdict = runfn(client.cfd, tc_ex_path, source);
+    if(verdict == Verdict::AC) verdict = runfn(client.cfd, tc_path, source);
 
-    std::ifstream user_code(*source); 
+    std::ifstream user_code(source);
     std::stringstream buffer;
     buffer << user_code.rdbuf();
     const std::string code_id = hash(buffer.str());
 
     namespace fs = std::filesystem;
-    fs::path source_fs(*source);
     const std::string code_storage_path = persistent_code_dir + code_id + ".cpp";
     fs::path destination_fs(code_storage_path);
 
     try {
         fs::create_directories(destination_fs.parent_path());
         fs::copy_file(
-            *source,
+            source,
             code_storage_path,
             fs::copy_options::overwrite_existing
         );

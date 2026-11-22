@@ -82,6 +82,11 @@ std::optional<std::string> resolve_source(
     const std::string& filename
 );
 
+// Validate command arguments before dispatching a client request.
+std::optional<std::string> validate_request(
+    const std::vector<std::string>& argv
+);
+
 //judge function
 Verdict judge(
     int cfd,
@@ -101,14 +106,16 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code);
 //run command
 Verdict run(
     ClientContext& client,
-    std::vector<std::string> &argv
+    const std::vector<std::string>& argv,
+    const std::string& source
 ); 
 
 
 //submit
 Verdict submit(
     ClientContext& client,
-    std::vector<std::string> &argv,
+    const std::vector<std::string>& argv,
+    const std::string& source,
     const LJSdatabase& database
 );
 
