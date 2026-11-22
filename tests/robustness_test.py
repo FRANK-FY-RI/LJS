@@ -71,7 +71,7 @@ def extract_exact_verdict(raw_output: str) -> str:
     clean = re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', raw_output).strip()
     
     if "Invalid source file" in clean: return "Invalid source file"
-    if "Incorrect Number of Arguments" in clean: return "Incorrect Number of Arguments"
+    if "Incorrect number of arguments" in clean: return "Incorrect Number of Arguments"
     if "Compilation Time Limit Exceeded" in clean: return "Compilation Time Limit Exceeded"
     if "Compilation error" in clean: return "Compilation error"
     if "Unable to run the sandbox" in clean: return "Child Process Error"
