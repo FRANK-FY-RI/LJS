@@ -81,32 +81,6 @@ Verdict new_process(
 }
 
 
-
-//Compile function
-Compile_Status compile(int cfd, const char *code) {
-    Compile_Status status;
-    status.binary = static_cast<std::string>("sol") + std::to_string(cfd);
-    status.binary_path = temp_dir + status.binary;
-    std::vector<char*> compile_args = {
-        (char*)"g++",
-        const_cast<char*>(code),
-        (char*)("-o"),
-        const_cast<char*>(status.binary_path.c_str()),
-    };
-    for(const auto arg:compiler_args) {
-        compile_args.push_back(arg);
-    }
-    compile_args.push_back(NULL);
-    status.status = new_process(
-        "/usr/bin/g++",
-        compile_args.data(),
-        -1, -1, cfd,
-        COMPILE_LIMITS
-    ); 
-    return status;
-}
-
-
 //Compare files
 Verdict diff(const std::string& file1_path, const std::string& file2_path) {
     std::ifstream file1(file1_path), file2(file2_path);

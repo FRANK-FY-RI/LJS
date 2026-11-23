@@ -2,6 +2,7 @@
 #define __ISOLATE_UTILS_HPP
 
 #include <string>
+#include "process_utils.hpp"
 #include "threadsafe_queue.hpp"
 #include "verdict.hpp"
 
@@ -47,10 +48,12 @@ public:
             );
 
 
-
-
     //Metadata Parser
     Verdict metadata_verdict(const std::string& metadata_file_path);
+
+
+    //Isolate Compilation
+    Compile_Status isolate_compile(const std::string& source_code_path);
 
 };
 

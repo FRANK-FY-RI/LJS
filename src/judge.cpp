@@ -163,12 +163,29 @@ Verdict judge(
 
 
 //run function
-Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
+Verdict runfn(int cfd, const std::string& tc_path, const std::string& source_code_path) {
     
     //compile
-    auto compile_status = compile(cfd, code.c_str());
+    Isolate sandbox;
+    const auto isolate_init_status = sandbox.isolate_init();
+    if(isolate_init_status != Verdict::SUCCESS) {
+        send_client(cfd, "Unable to Initialize a new sandbox\n");
+        return Verdict::PROCESS_ERROR;
+    }
+
+    //Populate the sandbox
+    // Copy source code into the sandbox and compile it from its sandbox path.
+    const std::string sandbox_source_code =
+        std::filesystem::path(source_code_path).filename().string();
+    if(copy_file(source_code_path, sandbox.box_path) != Verdict::SUCCESS) {
+        return Verdict::PROCESS_ERROR;
+    }
+
+    //run the compiler
+    auto compile_status = sandbox.isolate_compile(sandbox_source_code);
+
     if(compile_status.status == Verdict::CHILD_PROCESS_ERROR) {
-        send_client(cfd, "Unable to spawn new process: g++\n");
+        send_client(cfd, "sandbox error: Unable to compile\n");
         return Verdict::CHILD_PROCESS_ERROR;
     } 
     else if(compile_status.status == Verdict::TLE) {
@@ -178,7 +195,13 @@ Verdict runfn(int cfd, const std::string& tc_path, const std::string& code) {
     else if(compile_status.status != Verdict::SUCCESS) {
         send_client(cfd, "Compilation error\n");
         return compile_status.status;
-    }          
+    }       
+
+    //copy the binary into temporary dir
+    if(copy_file(compile_status.binary_path, temp_dir) != Verdict::SUCCESS) {
+        return Verdict::PROCESS_ERROR;
+    }
+    compile_status.binary_path = temp_dir + compile_status.binary;
     
     int i = 1;
     int ac = 0;

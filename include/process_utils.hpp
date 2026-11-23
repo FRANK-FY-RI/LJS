@@ -35,15 +35,6 @@ constexpr ProcessLimits COMMON_LIMITS{
     COMMON_WALL_TIMEOUT_SEC
 };
 
-// Compiler specific Limits
-constexpr ProcessLimits COMPILE_LIMITS{
-    COMPILE_CPU_LIMIT,
-    COMPILE_MEMORY_LIMIT,
-    COMPILE_FILE_SIZE_LIMIT,
-    COMMON_NO_OF_FILE_LIMIT,
-    COMPILE_WALL_TIMEOUT_SEC
-};
-
 
 // Compile Status
 struct Compile_Status {
@@ -86,9 +77,6 @@ Verdict new_process(
     const ProcessLimits& limits = COMMON_LIMITS
 );
 
-
-//function to compile
-Compile_Status compile(int cfd, const char *code);
 
 
 //delete a file

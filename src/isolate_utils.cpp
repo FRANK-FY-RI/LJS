@@ -126,3 +126,50 @@ Verdict Isolate::metadata_verdict(const std::string& metadata_file_path) {
     if(status == "TO") return Verdict::TLE; 
     return Verdict::SUCCESS;
 }
+
+
+
+//Isolate Compilation
+Compile_Status Isolate::isolate_compile(const std::string &source_code_path) { 
+
+    Compile_Status compile_status;
+    compile_status.binary = static_cast<std::string>("sol") + box_id;
+    compile_status.binary_path = box_path + compile_status.binary;
+
+    //compile using g++
+    const auto box_id_init_arg = (std::string)"--box-id=" + box_id;
+    std::string metadata_file_path = temp_dir + box_id + (std::string)".meta";
+    std::string metadata_init = (std::string)"--meta=" + metadata_file_path;
+    std::string stderr_arg = (std::string)"--stderr=err" + box_id + (std::string)".err";
+    std::vector<char*> run_args = {
+        (char*)"isolate",
+        const_cast<char*>(box_id_init_arg.c_str()),
+        (char*)"--run", 
+        const_cast<char*>(metadata_init.c_str()), 
+        const_cast<char*>(stderr_arg.c_str()), 
+        (char*)"--cg",
+        (char*)"--processes=64",
+        (char*)"--env=PATH",
+    };
+    run_args.push_back((char*)"--");
+    run_args.push_back(const_cast<char*>(CPP_COMPILER.c_str()));
+    run_args.push_back(const_cast<char*>(source_code_path.c_str()));
+    run_args.push_back((char*)"-o");
+    run_args.push_back(const_cast<char*>(compile_status.binary.c_str()));
+    for(const auto arg : isolate_compile_args) {
+        run_args.push_back(arg);
+    }
+    run_args.push_back(NULL);
+    compile_status.status = new_process(
+        "/usr/local/bin/isolate", 
+        run_args.data(),
+        -1, -1, STDERR_FILENO
+    ); 
+
+    if(compile_status.status == Verdict::CHILD_PROCESS_ERROR) return compile_status;
+
+    //check metadata verdict 
+    compile_status.status = metadata_verdict(metadata_file_path);
+    rm(metadata_file_path);
+    return compile_status; 
+}

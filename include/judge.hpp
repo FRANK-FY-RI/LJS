@@ -100,7 +100,7 @@ Verdict judge(
 
 
 //run function
-Verdict runfn(int cfd, const std::string& tc_path, const std::string& code); 
+Verdict runfn(int cfd, const std::string& tc_path, const std::string& source_code_path); 
 
 
 //run command

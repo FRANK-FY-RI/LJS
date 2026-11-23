@@ -27,7 +27,10 @@ const std::vector<char*> isolate_run_args = {
 };
 
 //g++ compiler flags
-const std::vector<char*> compiler_args = {
+
+inline const std::string CPP_COMPILER = "/usr/bin/g++";
+
+const std::vector<char*> isolate_compile_args = {
     (char*)"-std=c++20",
     (char*)"-Wall",
     (char*)"-Wextra",
@@ -63,12 +66,6 @@ constexpr rlim_t COMMON_FILE_SIZE_LIMIT = 512ULL * 1024 * 1024;   // 512 MB
 constexpr rlim_t COMMON_NO_OF_FILE_LIMIT = 128;
 
 constexpr std::chrono::seconds COMMON_WALL_TIMEOUT_SEC{5};
-
-// Compiler-specific
-constexpr rlim_t COMPILE_CPU_LIMIT = 10;
-constexpr rlim_t COMPILE_MEMORY_LIMIT = 1ULL * 1024 * 1024 * 1024;
-constexpr rlim_t COMPILE_FILE_SIZE_LIMIT = 16ULL * 1024 * 1024;
-constexpr std::chrono::seconds COMPILE_WALL_TIMEOUT_SEC{2};
 
 
 #endif
